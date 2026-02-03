@@ -1,0 +1,16 @@
+{
+  "name": "@algorandfoundation/wallet-provider",
+  "version": "0.0.1",
+  "description": "Abstract interface for compatibility between wallets",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "author": "Algorand Foundation",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
