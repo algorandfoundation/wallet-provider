@@ -4,8 +4,6 @@
 
 A modular, extensible wallet provider abstraction for the Algorand ecosystem. Inspired by the architecture of OctoKit and TxnLab's `use-wallet`, this package provides a base for building wallet integrations that can be dynamically extended with additional functionality.
 
-## Core Concepts
-
 ### Provider
 
 The `Provider` is the base class that represents a wallet's identity and core configuration. It manages:
@@ -19,7 +17,49 @@ Extensions are modular functions that augment the `Provider` with specific capab
 - **Flexibility**: They can be independent packages, provided by third parties, or baseline defaults (like KeyStore + BIP39).
 - **Prefer Composition**: Use `withExtensions` to create specialized Provider classes with a fixed set of extensions.
 
-## Acknowledgments and References
+## Usage
+
+The following example demonstrates how to create a specialized provider with extensions and use it in your application.
+
+```typescript
+import { Provider, type Extension, type ProviderOptions } from '@algorandfoundation/wallet-provider';
+
+// 1. Define an extension that adds logging capabilities
+const withLogger: Extension<{ log: (msg: string) => void }> = (provider) => {
+  return {
+    log: (msg: string) => console.log(`[${provider.name}] ${msg}`)
+  };
+};
+
+// 2. Define an extension that handles accounts (mock example)
+const withAccounts: Extension<{ getAccounts: () => string[] }> = (provider, options) => {
+  const accounts = options.accounts ? ['address1', 'address2'] : [];
+  return {
+    getAccounts: () => accounts
+  };
+};
+
+// 3. Create a specialized Provider class with these extensions
+const MyWalletProvider = Provider.withExtensions([withLogger, withAccounts]);
+
+// 4. Instantiate the provider with metadata and options
+const config: ProviderOptions = {
+  id: 'my-wallet',
+  name: 'My Wallet',
+  icon: 'https://example.com/icon.png'
+};
+
+const wallet = new MyWalletProvider(config, {
+  accounts: true // This option is passed to the extensions
+});
+
+// 5. Use the augmented functionality
+wallet.log('Wallet initialized!');
+const accounts = wallet.getAccounts();
+console.log('Available accounts:', accounts);
+```
+
+## Acknowledgments
 
 <!-- TODO: Refine acknowledgements as they develop -->
 

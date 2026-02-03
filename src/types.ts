@@ -1,5 +1,25 @@
+/**
+ * Represents a unique identifier for a provider.
+ */
 export type ProviderId = string;
 
+/**
+ * An Extension is a function that augments a {@link Provider} instance with additional functionality.
+ *
+ * Extensions are the primary way to add capabilities to a provider, such as account management,
+ * transaction signing, or custom API integrations.
+ *
+ * @template T - The type of the object that the extension returns, which will be merged into the Provider instance.
+ *
+ * @example
+ * ```typescript
+ * const myExtension: Extension<{ sayHello: () => void }> = (provider, options) => {
+ *   return {
+ *     sayHello: () => console.log(`Hello from ${provider.name}!`)
+ *   };
+ * };
+ * ```
+ */
 export type Extension<T = any> = (
 	provider: any,
 	options: any,
@@ -12,26 +32,43 @@ export type Extension<T = any> = (
 // }
 
 /**
- * Represents configuration options for an extension.
+ * Configuration options for an extension.
  *
  * This interface allows you to specify various features or capabilities
- * that the extension can support or interact with. Each option is optional
- * and can be enabled, disabled, or set to a null value.
+ * that the extension can support or interact with.
  *
- * @interface
+ * @example
+ * ```typescript
+ * const options: ExtensionOptions = {
+ *   accounts: true,
+ *   crypto: {
+ *     bip39: true
+ *   }
+ * };
+ * ```
  */
 export interface ExtensionOptions {
-	// The most critical extension, this is the transport for secret management.
-	// (not all keystores will have direct access to the key material, maintaining non-exportability)
+	/**
+	 * Transport for secret management.
+	 * Not all keystores will have direct access to the key material, maintaining non-exportability.
+	 */
 	keystore?: boolean | null | unknown;
-	// Accounts, the most common form of key material.
-	// These MUST provide TransactionSigners that are baked into the current Provider Context
+
+	/**
+	 * Account management capability.
+	 * These must provide TransactionSigners that are baked into the current Provider Context.
+	 */
 	accounts?: boolean | null | unknown;
 
-	// Cryptography extensions
+	/**
+	 * Cryptography-related extensions.
+	 */
 	crypto?: {
+		/** Enable BIP39 support */
 		bip39?: boolean | null;
+		/** Enable ALGO25 support */
 		algo25?: boolean | null;
+		/** Enable XHD support */
 		xhd?: boolean | null;
 	};
 }
@@ -44,25 +81,62 @@ export interface ExtensionOptions {
 //     icon: "data-url"
 // }
 
-export type ProviderOptions = {
+/**
+ * Configuration options for a {@link Provider}.
+ *
+ * @example
+ * ```typescript
+ * const config: ProviderOptions = {
+ *   id: "my-provider",
+ *   name: "My Wallet",
+ *   icon: "https://example.com/icon.png",
+ *   uri: "https://mywallet.com"
+ * };
+ * ```
+ */
+export interface ProviderOptions {
 	/**
-	 * Represents the unique identifier of a provider.
-	 * This variable is used to associate specific functionality or data with a particular provider instance.
+	 * Unique identifier for the provider.
 	 */
 	id: ProviderId;
+	/**
+	 * Human-readable name of the provider.
+	 */
 	name: string;
+	/**
+	 * Optional URL or data URI for the provider's icon.
+	 */
 	icon?: string;
+	/**
+	 * Optional base URI for the provider, used for deep linking or API discovery.
+	 */
 	uri?: URL | string;
+	/**
+	 * Optional port number if the provider communicates over a specific port.
+	 */
 	port?: number;
+	/**
+	 * Whether to use SSL for communication.
+	 */
 	ssl?: boolean;
 };
 
+/**
+ * Internal utility to convert a union of types to an intersection.
+ *
+ * @protected
+ */
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
 	k: infer I,
 ) => void
 	? I
 	: never;
 
+/**
+ * Internal utility to extract the return type of an {@link Extension}.
+ *
+ * @protected
+ */
 type ExtractExtensionReturn<E> =
 	E extends Extension<infer R>
 		? R extends Promise<infer PR>
@@ -70,46 +144,86 @@ type ExtractExtensionReturn<E> =
 			: R
 		: unknown;
 
+/**
+ * Infers the combined return type of an array of {@link Extension | extensions}.
+ *
+ * @template E - The array of extensions.
+ * @protected
+ */
 export type InferExtensions<E extends readonly Extension[]> =
 	UnionToIntersection<ExtractExtensionReturn<E[number]>>;
 
 /**
- * Represents a base class for managing configurations and extensions dynamically.
- * The class provides functionality to merge options, extend defaults, and add custom extensions.
+ * Type helper for a {@link Provider} instance that has been augmented with {@link Extension | extensions}.
  *
- * Object that can hold state in a more composed way, allowing for more than just wallet effects
- * Inspired by the work of OctoKit and TxnLab Use Wallet
+ * @template E - The array of extensions applied to the provider.
+ */
+export type BaseProvider<E extends readonly Extension[] = any[]> = Provider<E> &
+	InferExtensions<E>;
+
+/**
+ * Base class for managing configurations and extensions dynamically.
+ *
+ * The `Provider` class represents a wallet's identity and core configuration.
+ * It can be extended with {@link Extension | extensions} to add specific capabilities.
+ *
+ * @template _E - The array of extensions applied to this provider.
+ *
+ * @example
+ * ```typescript
+ * // 1. Define an extension
+ * const withLogger: Extension<{ log: (msg: string) => void }> = (provider) => ({
+ *   log: (msg) => console.log(`[${provider.name}] ${msg}`)
+ * });
+ *
+ * // 2. Create a specialized Provider class
+ * const MyProvider = Provider.withExtensions([withLogger]);
+ *
+ * // 3. Instantiate the provider
+ * const wallet = new MyProvider({ id: "p1", name: "My Wallet" });
+ *
+ * // 4. Use the extension functionality
+ * wallet.log("Initialized!");
+ * ```
  */
 export class Provider<_E extends readonly Extension[]> {
-	// Metadata for the Provider
+	/** Unique identifier for the provider instance. */
 	id: ProviderId;
+	/** Human-readable name of the provider. */
 	name: string;
+	/** Optional icon for the provider. */
 	icon?: string;
 
-	// Sharable Provider URI. These assume that we will provide a URI schema for Providers+Extensions (TBD).
-	// ie; wallet://intermezzo.app/onboard?extensions=[...]
-	// ie: wallet://perawallet.app/onboard?extensions=[...]
-	// Since we have the transports/rpc interfaces available and can construct the wallet dynamically, this is a viable option for trusted entities.
+	/**
+	 * Sharable Provider URI.
+	 * Can be used for deep linking (e.g., `wallet://perawallet.app/onboard?extensions=[...]`).
+	 */
 	uri?: URL | string;
 
-	// Shared Options
+	/**
+	 * Merged configuration options for the provider and its extensions.
+	 */
 	options: ExtensionOptions;
 
-	// TBD: Defaults for the Provider
+	/**
+	 * Default options for the Provider class.
+	 */
 	static DEFAULTS = {};
 
-	// Used to inject dependencies and|or check cross-dependencies between extensions
-	// These can be independent packages consumed by the public or provided by third parties such as Pera
-	static EXTENSIONS: readonly Extension[] = []; // This could include a baseline default like KeyStore + BIP39, it can be overridden by the user
+	/**
+	 * Extensions to be applied to all instances of this Provider class.
+	 * Use {@link withExtensions} to create a subclass with specific extensions.
+	 */
+	static EXTENSIONS: readonly Extension[] = [];
 
 	/**
-	 * Constructs a new instance of the class with the provided options.
-	 * It merges the default options with the supplied options and applies
-	 * any extensions defined in the class to the current instance.
+	 * Constructs a new Provider instance.
 	 *
-	 * @param config {ProviderOptions} - The unique identifier for the provider.
-	 * @param {object} [options] - Optional configuration options to customize the instance and extensions.
-	 *                              These options are merged with the default settings.
+	 * It merges the provided `options` with {@link DEFAULTS} and applies all {@link EXTENSIONS}
+	 * to the instance, merging their return values into `this`.
+	 *
+	 * @param config - Core metadata for the provider.
+	 * @param options - Custom configuration options for extensions.
 	 */
 	constructor(config: ProviderOptions, options?: ExtensionOptions | any) {
 		// Metadata
@@ -138,9 +252,19 @@ export class Provider<_E extends readonly Extension[]> {
 	}
 
 	/**
-	 * Creates and returns a new class that extends the current class, augmenting it with additional extensions.
+	 * Creates a new Provider class that includes the specified extensions.
 	 *
-	 * @param {Extension[]} extensions - An array of extensions to be added to the class. Extensions already present will be ignored.
+	 * This method uses composition to augment the Provider class with additional functionality
+	 * defined by the extensions.
+	 *
+	 * @param extensions - An array of {@link Extension} functions.
+	 * @returns A new Provider subclass with the extensions applied.
+	 *
+	 * @example
+	 * ```typescript
+	 * const EnhancedProvider = Provider.withExtensions([authExtension, txnExtension]);
+	 * const provider = new EnhancedProvider({ id: "id", name: "name" });
+	 * ```
 	 */
 	static withExtensions<E extends readonly Extension[]>(
 		extensions: E,
@@ -155,6 +279,3 @@ export class Provider<_E extends readonly Extension[]> {
 		} as any;
 	}
 }
-
-export type BaseProvider<E extends readonly Extension[] = any[]> = Provider<E> &
-	InferExtensions<E>;
