@@ -20,6 +20,7 @@ Extensions are modular functions that augment the `Provider` with specific capab
 ## Usage
 
 The following example demonstrates how to create a specialized provider with extensions and use it in your application.
+See the [DISCOVERY](./DISCOVERY.md) document for a high level concept of what a Provider's shape may look like.
 
 ```typescript
 import { Provider, type Extension, type ProviderOptions } from '@algorandfoundation/wallet-provider';
