@@ -26,14 +26,16 @@ See the [DISCOVERY](./DISCOVERY.md) document for a high level concept of what a 
 import { Provider, type Extension, type ProviderOptions } from '@algorandfoundation/wallet-provider';
 
 // 1. Define an extension that adds logging capabilities
-const withLogger: Extension<{ log: (msg: string) => void }> = (provider) => {
+type LoggerExtension = { log: (msg: string) => void }
+const withLogger: LoggerExtension = (provider) => {
   return {
     log: (msg: string) => console.log(`[${provider.name}] ${msg}`)
   };
 };
 
 // 2. Define an extension that handles accounts (mock example)
-const withAccounts: Extension<{ getAccounts: () => string[] }> = (provider, options) => {
+type AccountExtension = { accounts: string[], getAccounts: ()=> string[] }
+const withAccounts: AccountExtension = (provider, options) => {
   const accounts = options.accounts ? ['address1', 'address2'] : [];
   return {
     getAccounts: () => accounts
