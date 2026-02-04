@@ -243,9 +243,9 @@ export class Provider<_E extends readonly Extension[]> {
 		// Apply extensions to the current instance
 		(this.constructor as typeof Provider).EXTENSIONS.forEach(
 			(ext: Extension) => {
-				console.log(ext.name);
 				const result = ext(this, this.options);
-				console.log(result);
+				// TODO: Remove after well formed, used for development of extensions for now.
+				console.info(`${ext.name} :`, result);
 				Object.assign(this, result);
 			},
 		);
