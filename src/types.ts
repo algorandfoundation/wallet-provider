@@ -244,8 +244,6 @@ export class Provider<_E extends readonly Extension[]> {
 		(this.constructor as typeof Provider).EXTENSIONS.forEach(
 			(ext: Extension) => {
 				const result = ext(this, this.options);
-				// TODO: Remove after well formed, used for development of extensions for now.
-				console.info(`${ext.name} :`, result);
 				Object.assign(this, result);
 			},
 		);
@@ -268,13 +266,14 @@ export class Provider<_E extends readonly Extension[]> {
 	 */
 	static withExtensions<E extends readonly Extension[]>(
 		extensions: E,
-	): typeof Provider & {
+	): {
 		new (
 			config: ProviderOptions,
 			options?: any,
 		): Provider<E> & InferExtensions<E>;
-	} {
-		return class extends this<E> {
+		EXTENSIONS: E;
+	} & typeof Provider {
+		return class extends (this as any) {
 			static EXTENSIONS = extensions;
 		} as any;
 	}
