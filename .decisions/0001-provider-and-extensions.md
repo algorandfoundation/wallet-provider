@@ -31,3 +31,5 @@ This project deliberately provides limited concrete examples of extensions. This
 
 ### Ecosystem Contribution
 While some baseline extensions will be provided to demonstrate the pattern, we strongly encourage wallet developers and ecosystem contributors to create and maintain their own extensions. This ensures that the provider remains a neutral foundation for all.
+
+See [Extensions](https://github.com/algorandfoundation/wallet-provider-extensions) for more details about concrete extension interfaces.
