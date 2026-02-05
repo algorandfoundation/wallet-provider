@@ -119,7 +119,7 @@ export interface ProviderOptions {
 	 * Whether to use SSL for communication.
 	 */
 	ssl?: boolean;
-};
+}
 
 /**
  * Internal utility to convert a union of types to an intersection.
