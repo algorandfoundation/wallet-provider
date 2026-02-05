@@ -27,7 +27,7 @@ import { Provider, type Extension, type ProviderOptions } from '@algorandfoundat
 
 // 1. Define an extension that adds logging capabilities
 type LoggerExtension = { log: (msg: string) => void }
-const withLogger: LoggerExtension = (provider) => {
+const withLogger: Extension<LoggerExtension> = (provider) => {
   return {
     log: (msg: string) => console.log(`[${provider.name}] ${msg}`)
   };
@@ -35,9 +35,10 @@ const withLogger: LoggerExtension = (provider) => {
 
 // 2. Define an extension that handles accounts (mock example)
 type AccountExtension = { accounts: string[], getAccounts: ()=> string[] }
-const withAccounts: AccountExtension = (provider, options) => {
+const withAccounts: Extension<AccountExtension> = (provider, options) => {
   const accounts = options.accounts ? ['address1', 'address2'] : [];
   return {
+    accounts: accounts,
     getAccounts: () => accounts
   };
 };

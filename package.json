@@ -9,13 +9,16 @@
 		"build": "tsc",
 		"lint": "biome check",
 		"lint:fix": "biome check --fix",
-		"docs": "typedoc"
+		"docs": "typedoc",
+		"test": "vitest run",
+		"bench": "vitest bench"
 	},
 	"author": "Algorand Foundation",
 	"license": "Apache-2.0",
 	"devDependencies": {
 		"@biomejs/biome": "2.3.14",
 		"typedoc": "^0.28.16",
-		"typescript": "^5.9.3"
+		"typescript": "^5.9.3",
+		"vitest": "^4.0.18"
 	}
 }
