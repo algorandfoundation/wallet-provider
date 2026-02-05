@@ -244,7 +244,7 @@ export class Provider<_E extends readonly Extension[]> {
 		(this.constructor as typeof Provider).EXTENSIONS.forEach(
 			(ext: Extension) => {
 				const result = ext(this, this.options);
-				Object.assign(this, result);
+				Object.defineProperties(this, Object.getOwnPropertyDescriptors(result));
 			},
 		);
 	}
