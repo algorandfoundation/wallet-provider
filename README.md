@@ -21,13 +21,14 @@ Extensions are modular functions that augment the `Provider` with specific capab
 
 The following example demonstrates how to create a specialized provider with extensions and use it in your application.
 See the [DISCOVERY](./DISCOVERY.md) document for a high level concept of what a Provider's shape may look like.
+Read our [Architectural Decision Records (ADRs)](.decisions/0001-provider-and-extensions.md) for more context on the project's design.
 
 ```typescript
 import { Provider, type Extension, type ProviderOptions } from '@algorandfoundation/wallet-provider';
 
 // 1. Define an extension that adds logging capabilities
 type LoggerExtension = { log: (msg: string) => void }
-const withLogger: LoggerExtension = (provider) => {
+const withLogger: Extension<LoggerExtension> = (provider) => {
   return {
     log: (msg: string) => console.log(`[${provider.name}] ${msg}`)
   };
@@ -35,9 +36,10 @@ const withLogger: LoggerExtension = (provider) => {
 
 // 2. Define an extension that handles accounts (mock example)
 type AccountExtension = { accounts: string[], getAccounts: ()=> string[] }
-const withAccounts: AccountExtension = (provider, options) => {
+const withAccounts: Extension<AccountExtension> = (provider, options) => {
   const accounts = options.accounts ? ['address1', 'address2'] : [];
   return {
+    accounts: accounts,
     getAccounts: () => accounts
   };
 };
