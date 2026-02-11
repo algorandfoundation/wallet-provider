@@ -58,7 +58,7 @@
 						"CHANGELOG.md",
 						"package.json"
 					],
-					"message": "chore(release): [skip ci] Liquid Client \n\n${nextRelease.notes}"
+					"message": "chore(release): [skip ci] Wallet Provider \n\n${nextRelease.notes}"
 				}
 			],
 			[
