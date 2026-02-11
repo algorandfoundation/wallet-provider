@@ -1,6 +1,6 @@
 {
 	"name": "@algorandfoundation/wallet-provider",
-	"version": "0.0.1",
+	"version": "1.0.0-canary.1",
 	"description": "Abstract interface for compatibility between wallets",
 	"type": "module",
 	"main": "dist/index.js",
