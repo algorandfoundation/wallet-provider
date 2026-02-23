@@ -1,3 +1,10 @@
+# [1.0.0-canary.3](https://github.com/algorandfoundation/wallet-provider/compare/v1.0.0-canary.2...v1.0.0-canary.3) (2026-02-23)
+
+
+### Bug Fixes
+
+* remove example types from options ([574c4b5](https://github.com/algorandfoundation/wallet-provider/commit/574c4b56cf362b8dcab827ed82f7892e9de5bef3))
+
 # [1.0.0-canary.2](https://github.com/algorandfoundation/wallet-provider/compare/v1.0.0-canary.1...v1.0.0-canary.2) (2026-02-20)
 
 
