@@ -48,29 +48,7 @@ export type Extension<T = any> = (
  * ```
  */
 export interface ExtensionOptions {
-	/**
-	 * Transport for secret management.
-	 * Not all keystores will have direct access to the key material, maintaining non-exportability.
-	 */
-	keystore?: boolean | null | unknown;
 
-	/**
-	 * Account management capability.
-	 * These must provide TransactionSigners that are baked into the current Provider Context.
-	 */
-	accounts?: boolean | null | unknown;
-
-	/**
-	 * Cryptography-related extensions.
-	 */
-	crypto?: {
-		/** Enable BIP39 support */
-		bip39?: boolean | null;
-		/** Enable ALGO25 support */
-		algo25?: boolean | null;
-		/** Enable XHD support */
-		xhd?: boolean | null;
-	};
 }
 
 // Ideal Provider Configuration Object:
