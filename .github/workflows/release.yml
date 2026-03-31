@@ -1,7 +1,7 @@
 name: Release
 on:
   push:
-    branches: ['main', 'release']
+    branches: ["main", "release"]
 jobs:
   npm-publish:
     runs-on: ubuntu-latest
@@ -23,12 +23,12 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
       - uses: actions/setup-node@v4
         with:
-          node-version: '24.x'
-          cache: 'npm'
+          node-version: "24.x"
+          cache: "npm"
       - run: npm install
       - run: npm run build --if-present
-#        env:
-#          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      #        env:
+      #          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
       - run: npm run release --if-present
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

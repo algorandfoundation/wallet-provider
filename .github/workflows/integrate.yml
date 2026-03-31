@@ -21,19 +21,19 @@ jobs:
         run: npm run lint --if-present
       - name: Unit Test
         run: npx vitest --reporter=junit --outputFile=test-report.junit.xml
-#      - name: Upload test results to Codecov
-#        if: ${{ !cancelled() }}
-#        uses: codecov/test-results-action@v1
-#        with:
-#          token: ${{ secrets.CODECOV_TOKEN }}
+      #      - name: Upload test results to Codecov
+      #        if: ${{ !cancelled() }}
+      #        uses: codecov/test-results-action@v1
+      #        with:
+      #          token: ${{ secrets.CODECOV_TOKEN }}
       - name: Coverage
         run: npm run test:cov
       - name: Benchmark Tests
         run: npm run bench
-#      - name: Upload coverage reports to Codecov
-#        uses: codecov/codecov-action@v5
-#        with:
-#          token: ${{ secrets.CODECOV_TOKEN }}
+      #      - name: Upload coverage reports to Codecov
+      #        uses: codecov/codecov-action@v5
+      #        with:
+      #          token: ${{ secrets.CODECOV_TOKEN }}
       - name: Run Build
         run: npm run build
 #        env:

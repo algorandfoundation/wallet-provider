@@ -2,27 +2,26 @@
 
 This document describes the high level architecture of wallet core functionality.
 
-
 ```mermaid
 classDiagram
     KMS  "1" -- "*" Key
     Account "*" <-- "1" KMS
     Identity "*" <-- "1" KMS
     Passkey "*" <-- "1" KMS
-    
-    
+
+
     Intermezzo ..> Account
     Intermezzo ..> Algorand
     Intermezzo ..> Extensions
-    
+
     Algorand "*" -- "*" Account
 
     DigitalCredentials "1" --|> "*" Identity
     CredentialManager "1" --|> "*" Passkey
-    
+
     Provider <|-- Extensions
-    
-    %% Adopt incrementally to form 
+
+    %% Adopt incrementally to form
     Extensions ..> CredentialManager
     Extensions ..> DigitalCredentials
     Extensions ..> Algorand
@@ -33,20 +32,20 @@ classDiagram
         %% TBD: High level wrapper for interacting with services. ARC27 UseWallet BaseWallet?
         * connect()
         * disconnect()
-        
+
         %% Proviers can be used to manage accounts, traditional use-wallet provider role
         accounts()
-        
+
         %% Providers can be used to manage identities, this a new introduction
         credentials()
         %% Providers can be used to manage passkeys, this a new introduction
         passkeys()
-        
+
         %% Cryptographic operations, exposed from the KMS
         encrypt(keyPath, message)
         decrypt(keyPath, message)
     }
-    
+
     class Account {
       %% Algosdk v10 Account Manager
       String address
@@ -55,7 +54,7 @@ classDiagram
     class Key {
       %% TBD - Algosdk v10 Key Manager?, XHD?
       String publicKey
-      String privateKey  
+      String privateKey
     }
     class KMS {
         %% TBD - Pera/Wallet Core? Algosdk v10 Key Manager, XHD?
@@ -96,6 +95,6 @@ classDiagram
         %% Provided by platforms
         ...navigator.credentials
     }
-    
-    
+
+
 ```
