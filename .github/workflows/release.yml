@@ -1,7 +1,7 @@
 name: Release
 on:
   push:
-    branches: ['main', 'release']
+    branches: ["main", "release"]
 jobs:
   npm-publish:
     runs-on: ubuntu-latest
@@ -21,15 +21,14 @@ jobs:
         with:
           fetch-depth: 0
           token: ${{ steps.app-token.outputs.token }}
+      - uses: pnpm/action-setup@v5 # Honors the packageManager field
       - uses: actions/setup-node@v4
         with:
-          node-version: '24.x'
-          cache: 'npm'
-      - run: npm install
-      - run: npm run build --if-present
-#        env:
-#          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-      - run: npm run release --if-present
+          node-version: "24.x"
+          cache: "npm"
+      - run: pnpm install
+      - run: pnpm run --if-present build
+      - run: pnpm run release
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
