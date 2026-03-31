@@ -20,7 +20,7 @@ jobs:
       - name: Install Dependencies
         run: pnpm install
       - name: Lint Codebase
-        run: pnpm run lint:github --if-present
+        run: pnpm run --if-present lint:github
       - name: Check formatting
         run: pnpm run fmt:check
       - name: Unit Test
