@@ -21,19 +21,22 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "scripts": {
     "build": "tsc",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
+    "lint:github": "oxlint --format=github",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
     "docs": "typedoc",
     "test": "vitest run",
     "test:cov": "vitest run --coverage",
     "bench": "vitest bench",
-    "release": "npx semantic-release"
+    "release": "npx semantic-release",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
@@ -43,11 +46,17 @@
     "@semantic-release/npm": "^13.1.4",
     "@semantic-release/release-notes-generator": "^14.1.0",
     "@vitest/coverage-v8": "^4.0.18",
-    "oxfmt": "^0.43.0",
-    "oxlint": "^1.58.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.4.0",
+    "oxfmt": "^0.42.0",
+    "oxlint": "^1.57.0",
     "typedoc": "^0.28.16",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,mjs,cjs}": "oxlint",
+    "*": "oxfmt --no-error-on-unmatched-pattern"
   },
   "release": {
     "plugins": [
@@ -79,5 +88,6 @@
         "prerelease": "canary"
       }
     ]
-  }
+  },
+  "packageManager": "pnpm@10.33.0+sha512.10568bb4a6afb58c9eb3630da90cc9516417abebd3fabbe6739f0ae795728da1491e9db5a544c76ad8eb7570f5c4bb3d6c637b2cb41bfdcdb47fa823c8649319"
 }
