@@ -1,17 +1,17 @@
-# Wallet Provider
+# 💳 Wallet Provider
 
 <!-- TODO: Add Heading with badges -->
 
 A modular, extensible wallet provider abstraction for the Algorand ecosystem. Inspired by the architecture of OctoKit and TxnLab's `use-wallet`, this package provides a base for building wallet integrations that can be dynamically extended with additional functionality.
 
-### Provider
+### 🏗️ Provider
 
 The `Provider` is the base class that represents a wallet's identity and core configuration. It manages:
 
 - **Configuration**: Shared options for the provider and its extensions.
 - **Composition**: Orchestrating the application of extensions.
 
-### Extensions
+### 🧩 Extensions
 
 Extensions are modular functions that augment the `Provider` with specific capabilities.
 
@@ -19,7 +19,7 @@ Extensions are modular functions that augment the `Provider` with specific capab
 - **Flexibility**: They can be independent packages, provided by third parties, or baseline defaults (like KeyStore + BIP39).
 - **Prefer Composition**: Use `withExtensions` to create specialized Provider classes with a fixed set of extensions.
 
-## Usage
+## 🚀 Usage
 
 The following example demonstrates how to create a specialized provider with extensions and use it in your application.
 See the [DISCOVERY](./DISCOVERY.md) document for a high level concept of what a Provider's shape may look like.
@@ -70,7 +70,9 @@ const accounts = wallet.getAccounts();
 console.log("Available accounts:", accounts);
 ```
 
-## Acknowledgments
+Consult the [CONTRIBUTING](./CONTRIBUTING.md) guide for information on development, testing, and pull requests.
+
+## 🤝 Acknowledgments
 
 <!-- TODO: Refine acknowledgements as they develop -->
 

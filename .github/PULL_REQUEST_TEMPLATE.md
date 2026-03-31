@@ -13,4 +13,4 @@
 <!-- Use [X] to mark as completed -->
 
 - [ ] Conventional Commits
-- [ ] `npm test:cov` passes
+- [ ] `pnpm run test:cov` passes
