@@ -1,8 +1,17 @@
 # 💳 Wallet Provider
 
-<!-- TODO: Add Heading with badges -->
+<p align="center">
+  <img src="https://raw.githubusercontent.com/algorandfoundation/wallet-provider/refs/heads/main/assets/banner.png" width="100%" />
+</p>
 
-A modular, extensible wallet provider abstraction for the Algorand ecosystem. Inspired by the architecture of OctoKit and TxnLab's `use-wallet`, this package provides a base for building wallet integrations that can be dynamically extended with additional functionality.
+<p align="center">
+  <a href="https://github.com/algorandfoundation/wallet-provider/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@algorandfoundation/wallet-provider" alt="License" /></a>
+  <a href="https://www.npmjs.com/package/@algorandfoundation/wallet-provider"><img src="https://img.shields.io/npm/v/@algorandfoundation/wallet-provider?logo=npm" alt="NPM Version" /></a>
+  <a href="https://github.com/algorandfoundation/wallet-provider/stargazers"><img src="https://img.shields.io/github/stars/algorandfoundation/wallet-provider?style=social" alt="GitHub stars" /></a>
+</p>
+
+A modular, extensible wallet provider abstraction for wallet providers.
+Inspired by the architecture of OctoKit and TxnLab's `use-wallet`, this package provides a base for building wallet integrations that can be dynamically extended with additional functionality.
 
 ### 🏗️ Provider
 
@@ -87,5 +96,3 @@ We would like to acknowledge the following individuals and entities for their co
   - [Lute](https://lute.app) and [Andrew Funk](https://github.com/acfunk) (@acfunk) for their contributions to web wallets, readily adopting the latest features.
   - [Kibis-is](https://kibis.is/) and [Kieran Roneill](https://github.com/kieranroneill) (@kieranroneill) for their work as an extension-based wallet and contributions to ARC standards such as ARC27.
   - [Defly](https://defly.app/) and [Kevin Wellenzohn](https://github.com/k13n) (@k13n) for pioneering wallet features and deep engagement with the Algorand ecosystem and ARC standards.
-
-<!-- TODO: Add Stars/Forks Badge -->
