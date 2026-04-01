@@ -1,6 +1,6 @@
 {
   "name": "@algorandfoundation/wallet-provider",
-  "version": "1.0.0-canary.3",
+  "version": "1.0.0-canary.4",
   "description": "Abstract interface for compatibility between wallets",
   "license": "Apache-2.0",
   "author": "Algorand Foundation",

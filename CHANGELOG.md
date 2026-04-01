@@ -1,3 +1,10 @@
+# [1.0.0-canary.4](https://github.com/algorandfoundation/wallet-provider/compare/v1.0.0-canary.3...v1.0.0-canary.4) (2026-04-01)
+
+
+### Bug Fixes
+
+* adds provenance, migrates to pnpm ([7c3c95e](https://github.com/algorandfoundation/wallet-provider/commit/7c3c95e594afbb5fde5d115b2525d8ba2919dfcd))
+
 # [1.0.0-canary.3](https://github.com/algorandfoundation/wallet-provider/compare/v1.0.0-canary.2...v1.0.0-canary.3) (2026-02-23)
 
 ### Bug Fixes
