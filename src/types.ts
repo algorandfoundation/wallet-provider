@@ -20,7 +20,7 @@ export type ProviderId = string;
  * };
  * ```
  */
-export type Extension<T = any> = (provider: any, options: any) => T | Promise<T>;
+export type Extension<T = any> = (provider: any, options: any) => T;
 
 // Ideal Extension Configuration Object:
 // {
