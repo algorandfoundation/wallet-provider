@@ -1,3 +1,10 @@
+# [1.0.0-canary.5](https://github.com/algorandfoundation/wallet-provider/compare/v1.0.0-canary.4...v1.0.0-canary.5) (2026-04-08)
+
+
+### Bug Fixes
+
+* remove promise from extension return type ([0fc7dee](https://github.com/algorandfoundation/wallet-provider/commit/0fc7dee9d7ea7b1d4970e378b560a3d99c4b66f3))
+
 # [1.0.0-canary.4](https://github.com/algorandfoundation/wallet-provider/compare/v1.0.0-canary.3...v1.0.0-canary.4) (2026-04-01)
 
 ### Bug Fixes
