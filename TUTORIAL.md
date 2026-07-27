@@ -1,7 +1,7 @@
 # Building Reactive Wallets with Providers, Extensions, and Domain Stores
 
 `@algorandfoundation/wallet-provider` is built on a simple idea: a wallet is a set of
-independent **capabilities** (accounts, sessions, signing, balances) composed onto a
+independent **capabilities** (keys, accounts, identities, sessions) composed onto a
 **provider**, with all state living in **domain stores** — [TanStack Store](https://tanstack.com/store)
 atoms that the application creates and hands to the provider. The provider does not own
 state; it _operates_ on stores you give it. Every domain is namespaced symmetrically:
@@ -37,16 +37,16 @@ domain of behavior.
 Extensions apply in order, and each one receives the provider as it exists so far — so an
 extension can **depend on other extensions**, using the methods and state that earlier
 extensions merged onto the instance. Composition is the dependency mechanism:
-`withExtensions([withAccounts, withSigning])` gives `withSigning` access to everything
-`withAccounts` contributed.
+`withExtensions([withKeys, withAccounts])` gives `withAccounts` access to everything
+`withKeys` contributed.
 
 ### 3. Domain stores — injected reactive state
 
 State is not a single blob and it is not created inside the provider. The application
-creates **one store per domain** — accounts, session, balances, whatever the wallet needs —
-and passes each one in under that domain's key in the provider's options: the accounts
-store goes in at `options.accounts.store`, alongside any other configuration the domain
-needs. The constructor merges options with `DEFAULTS` and forwards them to every
+creates **one store per domain** — keys, accounts, identities, sessions, whatever the
+wallet needs — and passes each one in under that domain's key in the provider's options:
+the accounts store goes in at `options.accounts.store`, alongside any other configuration
+the domain needs. The constructor merges options with `DEFAULTS` and forwards them to every
 extension, so each extension picks up its own namespace from the same options bag:
 
 ```typescript
@@ -54,23 +54,25 @@ import { Store } from "@tanstack/store";
 import { Provider } from "@algorandfoundation/wallet-provider";
 
 // One store per domain — each an independent reactive atom
+const keys = new Store({ list: [] as Key[], status: "idle" as string });
 const accounts = new Store({ list: [] as string[], active: null as string | null });
-const session = new Store({ connected: false, network: "mainnet" });
-const balances = new Store({ byAddress: {} as Record<string, bigint> });
+const identities = new Store({ list: [] as Identity[] });
+const sessions = new Store({ connected: false, network: "mainnet" });
 
-const MyWallet = Provider.withExtensions([withSession, withAccounts, withBalances]);
+const MyWallet = Provider.withExtensions([withKeys, withAccounts, withIdentities, withSessions]);
 
 const wallet = new MyWallet(
   { id: "my-wallet", name: "My Wallet" },
   {
     // One namespace per domain — each holds that domain's store (plus any other config)
-    session: { store: session },
+    keys: { store: keys },
     accounts: { store: accounts },
-    balances: { store: balances },
+    identities: { store: identities },
+    sessions: { store: sessions },
   },
 );
 
-wallet.session.connect(); // contributed by withSession — fully typed
+wallet.sessions.connect(); // contributed by withSessions — fully typed
 wallet.accounts.list; // contributed by withAccounts — fully typed
 ```
 
@@ -102,19 +104,20 @@ invokes commands and reacts.
 ## Why this works so well reactively
 
 Wallet state is asynchronous and event-driven by nature: sessions drop, accounts change
-from a mobile approval or a deep link, balances move on-chain. A UI cannot poll for any of
-this — it has to react. The architecture above turns that requirement into structure:
+from a mobile approval or a deep link, keys are derived and identities restored from a
+backup. A UI cannot poll for any of this — it has to react. The architecture above turns
+that requirement into structure:
 
 **Reactivity follows domain boundaries.** Because each domain is its own store, a
-component watching balances is never woken by a session reconnect, and a session indicator
+component watching identities is never woken by a session reconnect, and a session indicator
 never re-renders because an account list changed. The granularity of your subscriptions
 matches the granularity of your state — by construction, not by careful selector
 discipline over one giant object. The namespaces keep that boundary legible end to end:
 the same domain name marks the store going in (`options.accounts.store`) and the
 interface coming out (`provider.accounts`).
 
-**State escapes the wallet layer.** The stores are yours. Persist the session store to
-storage, snapshot the accounts store in a test, feed the balances store to a service
+**State escapes the wallet layer.** The stores are yours. Persist the sessions store to
+storage, snapshot the accounts store in a test, feed the keys store to a service
 worker — the provider neither knows nor cares. It is a controller over the stores, not a
 silo around them.
 
@@ -143,11 +146,11 @@ render:
 
 ```typescript
 const accounts = new Store({ list: [] as string[], active: null as string | null });
-const session = new Store({ connected: false, network: "mainnet" });
+const sessions = new Store({ connected: false, network: "mainnet" });
 
 const wallet = new MyWallet(
   { id: "my-wallet", name: "My Wallet" },
-  { accounts: { store: accounts }, session: { store: session } },
+  { accounts: { store: accounts }, sessions: { store: sessions } },
 );
 
 // Imperative read — convenience access via the domain's namespace
@@ -186,7 +189,7 @@ function AccountList({ wallet }: { wallet: InstanceType<typeof MyWallet> }) {
 
 Note the division of labor: components _read_ from stores and use the wallet only to
 _invoke commands_. Code that only displays state never needs the provider at all — a
-status badge can import the session store directly.
+status badge can import the sessions store directly.
 
 ## For extension authors: implementing a capability
 
@@ -270,26 +273,27 @@ can build directly on what earlier ones contributed — call their methods, read
 convenience state:
 
 ```typescript
-type SigningApi = {
-  signing: {
-    signTransactions: (txns: Uint8Array[]) => Promise<Uint8Array[]>;
+type IdentitiesApi = {
+  identities: {
+    /** Resolve the DID of the active account */
+    resolve: () => Promise<string>;
   };
 };
 
-export const withSigning: Extension<SigningApi> = (provider, options) => {
+export const withIdentities: Extension<IdentitiesApi> = (provider, options) => {
   return {
-    signing: {
-      async signTransactions(txns) {
+    identities: {
+      async resolve() {
         // Depends on withAccounts: reads the namespace it already merged onto the provider
-        const signer = getSigner(provider.accounts.active);
-        return signer.sign(txns);
+        const identity = getIdentity(provider.accounts.active);
+        return identity.did;
       },
     },
   };
 };
 
-// Order matters: withAccounts must apply before withSigning
-const MyWallet = Provider.withExtensions([withAccounts, withSigning]);
+// Order matters: withAccounts must apply before withIdentities
+const MyWallet = Provider.withExtensions([withAccounts, withIdentities]);
 ```
 
 Prefer stores for loose collaboration between peers; use a direct dependency when one
@@ -304,9 +308,9 @@ type LoggerApi = { log: (msg: string) => void };
 
 export const withLogger: Extension<LoggerApi> = (provider, options) => {
   // Reactive integration is optional — wire it up only if the store is there
-  if (options.session?.store) {
-    options.session.store.subscribe(() => {
-      console.log(`[${provider.name}] session:`, options.session.store.state);
+  if (options.sessions?.store) {
+    options.sessions.store.subscribe(() => {
+      console.log(`[${provider.name}] session:`, options.sessions.store.state);
     });
   }
 
@@ -319,16 +323,19 @@ consumers choose how much reactivity they inject. (A cross-cutting utility like 
 owns no domain, so it merges `log` flat rather than claiming a namespace.)
 
 **Just mutating the store.** Some extensions expose little or no API at all. Their entire
-job is to feed events into a store — a watcher that listens to the chain and writes into
-balances, for example:
+job is to feed events into a store — a bridge that watches the keys store and routes
+identity-context keys into the identities store, for example:
 
 ```typescript
-export const withBalanceWatcher: Extension<object> = (provider, options) => {
-  const balances = options.balances.store;
+export const withIdentityWatcher: Extension<object> = (provider, options) => {
+  const keys = options.keys.store;
+  const identities = options.identities.store;
 
-  onChainEvent(provider.uri, (update) => {
-    balances.setState((prev) => ({
-      byAddress: { ...prev.byAddress, [update.address]: update.amount },
+  // Route every identity-context key into the identities store
+  keys.subscribe(() => {
+    const identityKeys = keys.state.list.filter((k) => k.metadata?.context === 1);
+    identities.setState(() => ({
+      list: identityKeys.map((k) => createKeyIdentity(k)),
     }));
   });
 
@@ -336,8 +343,8 @@ export const withBalanceWatcher: Extension<object> = (provider, options) => {
 };
 ```
 
-No one ever calls a method on this extension, yet every subscriber of `balances` reacts to
-its writes. The store is the interface.
+No one ever calls a method on this extension, yet every subscriber of `identities` reacts
+to its writes. The store is the interface.
 
 ### Deriving across domains
 
@@ -348,29 +355,29 @@ involved never need to reference each other:
 ```typescript
 import { Derived } from "@tanstack/store";
 
-type SpendableApi = {
-  spendable: {
+type ActiveIdentityApi = {
+  activeIdentity: {
     /** The derived atom — subscribe to it like any store */
-    atom: Derived<bigint>;
+    atom: Derived<string | null>;
     /** Convenience accessor */
-    readonly balance: bigint;
+    readonly did: string | null;
   };
 };
 
-export const withSpendable: Extension<SpendableApi> = (provider, options) => {
+export const withActiveIdentity: Extension<ActiveIdentityApi> = (provider, options) => {
   const accounts = options.accounts.store;
-  const balances = options.balances.store;
+  const identities = options.identities.store;
 
   const atom = new Derived({
-    fn: () => balances.state.byAddress[accounts.state.active ?? ""] ?? 0n,
-    deps: [accounts, balances], // recomputes when either domain changes
+    fn: () => identities.state.list.find((i) => i.address === accounts.state.active)?.did ?? null,
+    deps: [accounts, identities], // recomputes when either domain changes
   });
   atom.mount();
 
   return {
-    spendable: {
+    activeIdentity: {
       atom,
-      get balance() {
+      get did() {
         return atom.state;
       },
     },
@@ -378,7 +385,7 @@ export const withSpendable: Extension<SpendableApi> = (provider, options) => {
 };
 ```
 
-`wallet.spendable.balance` now tracks the active account's balance across two domains — declared
+`wallet.activeIdentity.did` now tracks the active account's identity across two domains — declared
 once, updated automatically, with zero coupling between the extensions that maintain those
 domains.
 
