@@ -1,3 +1,10 @@
+# [1.0.0-canary.6](https://github.com/algorandfoundation/wallet-provider/compare/v1.0.0-canary.5...v1.0.0-canary.6) (2026-08-13)
+
+
+### Bug Fixes
+
+* security patches ([c651236](https://github.com/algorandfoundation/wallet-provider/commit/c65123669e74371cce17387ce6ae4308800164b0))
+
 # [1.0.0-canary.5](https://github.com/algorandfoundation/wallet-provider/compare/v1.0.0-canary.4...v1.0.0-canary.5) (2026-04-08)
 
 
