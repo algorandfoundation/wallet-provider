@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { type Extension, Provider, type ProviderOptions } from "./index.js";
+import {
+  type Extension,
+  ExtensionCollisionError,
+  Provider,
+  type ProviderOptions,
+} from "./index.js";
 
 describe("Provider", () => {
   it("should initialize with basic config", () => {
@@ -72,5 +77,110 @@ describe("Provider", () => {
     // For now, let's just check that it doesn't crash and see what it actually does.
 
     expect(wallet.asyncData).toBeUndefined();
+  });
+
+  describe("composition safety", () => {
+    const config: ProviderOptions = {
+      id: "base-wallet",
+      name: "Base Wallet",
+      uri: "https://base.example",
+    };
+
+    it.each(["id", "name", "icon", "uri", "options"])(
+      "rejects an extension that shadows base %s",
+      (reserved) => {
+        const hostile: Extension<Record<string, string>> = () => ({ [reserved]: "attacker" });
+        const HostileProvider = Provider.withExtensions([hostile]);
+
+        expect(() => new HostileProvider(config)).toThrow(ExtensionCollisionError);
+        expect(() => new HostileProvider(config)).toThrow(reserved);
+      },
+    );
+
+    it("rejects a later extension that shadows an earlier extension's capability", () => {
+      const withKey: Extension<{ key: string }> = () => ({ key: "genuine" });
+      const withShadowedKey: Extension<{ key: string }> = () => ({ key: "attacker" });
+      const CollidingProvider = Provider.withExtensions([withKey, withShadowedKey]);
+
+      expect(() => new CollidingProvider(config)).toThrow(ExtensionCollisionError);
+      expect(() => new CollidingProvider(config)).toThrow("key");
+    });
+
+    it("detects collisions on symbol-keyed properties", () => {
+      const capability = Symbol("capability");
+      const first: Extension<object> = () => ({ [capability]: "genuine" });
+      const second: Extension<object> = () => ({ [capability]: "attacker" });
+      const CollidingProvider = Provider.withExtensions([first, second]);
+
+      expect(() => new CollidingProvider(config)).toThrow(ExtensionCollisionError);
+    });
+
+    it("allows a collision that is declared in allowOverrides", () => {
+      const withLog: Extension<{ log: () => string }> = () => ({ log: () => "first" });
+      const withBetterLog: Extension<{ log: () => string }> = () => ({ log: () => "second" });
+      const OverridingProvider = Provider.withExtensions([withLog, withBetterLog], {
+        allowOverrides: ["log"],
+      });
+
+      const wallet = new OverridingProvider(config);
+
+      expect(wallet.log()).toBe("second");
+    });
+
+    it("never allows overriding base properties, even when declared", () => {
+      const hostile: Extension<{ id: string }> = () => ({ id: "attacker" });
+      const HostileProvider = Provider.withExtensions([hostile], { allowOverrides: ["id"] });
+
+      expect(() => new HostileProvider(config)).toThrow(ExtensionCollisionError);
+    });
+
+    it("locks base identity against direct mutation by an extension", () => {
+      const hostile: Extension<object> = (provider) => {
+        provider.id = "attacker";
+        return {};
+      };
+      const HostileProvider = Provider.withExtensions([hostile]);
+
+      expect(() => new HostileProvider(config)).toThrow(TypeError);
+    });
+
+    it("locks base identity against mutation after construction", () => {
+      const wallet = new Provider(config);
+
+      expect(() => {
+        (wallet as { id: string }).id = "attacker";
+      }).toThrow(TypeError);
+      expect(() => {
+        (wallet as { name: string }).name = "attacker";
+      }).toThrow(TypeError);
+      expect(() => {
+        (wallet as { uri: string }).uri = "https://attacker.example";
+      }).toThrow(TypeError);
+      expect(wallet.id).toBe(config.id);
+    });
+
+    it("freezes merged options after construction", () => {
+      const wallet = new Provider(config, { accounts: true });
+
+      expect(() => {
+        (wallet as { options: object }).options = {};
+      }).toThrow(TypeError);
+      expect(() => {
+        (wallet.options as { injected?: boolean }).injected = true;
+      }).toThrow(TypeError);
+    });
+
+    it("still composes disjoint extensions in order", () => {
+      const withMigrations: Extension<{ migrations: string[] }> = () => ({ migrations: [] });
+      const withRegistrant: Extension<object> = (provider) => {
+        provider.migrations.push("registered");
+        return {};
+      };
+      const ComposedProvider = Provider.withExtensions([withMigrations, withRegistrant]);
+
+      const wallet = new ComposedProvider(config);
+
+      expect(wallet.migrations).toEqual(["registered"]);
+    });
   });
 });

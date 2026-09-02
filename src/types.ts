@@ -129,6 +129,58 @@ export type InferExtensions<E extends readonly Extension[]> = UnionToIntersectio
 export type BaseProvider<E extends readonly Extension[] = any[]> = Provider<E> & InferExtensions<E>;
 
 /**
+ * Composition-time configuration for {@link Provider.withExtensions}.
+ */
+export type WithExtensionsOptions = {
+  /**
+   * Property keys that a later extension is allowed to redefine after an earlier
+   * extension has contributed them.
+   *
+   * Redefining a property is otherwise rejected with an {@link ExtensionCollisionError},
+   * so intentional shadowing has to be declared here, at the composition site, where it
+   * can be audited. Base provider properties (`id`, `name`, `icon`, `uri`, `options`)
+   * can never be redefined, even when listed.
+   */
+  allowOverrides?: readonly PropertyKey[];
+};
+
+/**
+ * Thrown during {@link Provider} construction when an extension returns a property
+ * that is already defined on the provider — either a base provider property or a
+ * capability contributed by an earlier extension.
+ *
+ * Without this check the later extension would silently win, turning an accidental
+ * name collision (or a compromised extension dependency) into capability confusion.
+ * Intentional shadowing of extension-contributed properties must be declared via
+ * {@link WithExtensionsOptions.allowOverrides}.
+ */
+export class ExtensionCollisionError extends Error {
+  /** The property key the extension attempted to redefine. */
+  readonly property: PropertyKey;
+
+  constructor(property: PropertyKey) {
+    super(
+      `Extension attempted to redefine "${String(property)}", which is already defined on the provider. ` +
+        `Intentional overrides of extension-contributed properties must be declared via withExtensions' allowOverrides.`,
+    );
+    this.name = "ExtensionCollisionError";
+    this.property = property;
+  }
+}
+
+/**
+ * Base provider properties that no extension may redefine, with or without an
+ * {@link WithExtensionsOptions.allowOverrides} declaration.
+ */
+const RESERVED_PROVIDER_KEYS: ReadonlySet<PropertyKey> = new Set([
+  "id",
+  "name",
+  "icon",
+  "uri",
+  "options",
+]);
+
+/**
  * Base class for managing configurations and extensions dynamically.
  *
  * The `Provider` class represents a wallet's identity and core configuration.
@@ -154,23 +206,26 @@ export type BaseProvider<E extends readonly Extension[] = any[]> = Provider<E> &
  * ```
  */
 export class Provider<_E extends readonly Extension[]> {
-  /** Unique identifier for the provider instance. */
-  id: ProviderId;
-  /** Human-readable name of the provider. */
-  name: string;
+  /** Unique identifier for the provider instance. Locked (non-writable) after construction. */
+  readonly id: ProviderId;
+  /** Human-readable name of the provider. Locked (non-writable) after construction. */
+  readonly name: string;
   /** Optional icon for the provider. */
   icon?: string;
 
   /**
    * Sharable Provider URI.
    * Can be used for deep linking (e.g., `wallet://perawallet.app/onboard?extensions=[...]`).
+   * Locked (non-writable) after construction.
    */
-  uri?: URL | string;
+  readonly uri?: URL | string;
 
   /**
    * Merged configuration options for the provider and its extensions.
+   * The reference is locked before extensions run and the object is frozen
+   * (shallow) once construction completes.
    */
-  options: ExtensionOptions;
+  readonly options: ExtensionOptions;
 
   /**
    * Default options for the Provider class.
@@ -182,6 +237,13 @@ export class Provider<_E extends readonly Extension[]> {
    * Use {@link withExtensions} to create a subclass with specific extensions.
    */
   static EXTENSIONS: readonly Extension[] = [];
+
+  /**
+   * Extension-contributed property keys that a later extension may redefine.
+   * Set via {@link withExtensions}' `allowOverrides`; empty by default, so every
+   * collision is rejected with an {@link ExtensionCollisionError}.
+   */
+  static OVERRIDES: readonly PropertyKey[] = [];
 
   /**
    * Constructs a new Provider instance.
@@ -207,11 +269,31 @@ export class Provider<_E extends readonly Extension[]> {
       ...options,
     };
 
+    // Lock base identity and the options reference before any extension code runs,
+    // so an extension can neither redefine them (rejected below) nor mutate them
+    // directly through the provider reference it receives.
+    for (const key of ["id", "name", "uri", "options"]) {
+      Object.defineProperty(this, key, { writable: false, configurable: false });
+    }
+
+    const allowedOverrides = new Set((this.constructor as typeof Provider).OVERRIDES);
+
     // Apply extensions to the current instance
     (this.constructor as typeof Provider).EXTENSIONS.forEach((ext: Extension) => {
       const result = ext(this, this.options);
-      Object.defineProperties(this, Object.getOwnPropertyDescriptors(result));
+      const descriptors = Object.getOwnPropertyDescriptors(result);
+      for (const key of Reflect.ownKeys(descriptors)) {
+        const isCollision = Object.prototype.hasOwnProperty.call(this, key);
+        if (isCollision && (RESERVED_PROVIDER_KEYS.has(key) || !allowedOverrides.has(key))) {
+          throw new ExtensionCollisionError(key);
+        }
+      }
+      Object.defineProperties(this, descriptors);
     });
+
+    // Shallow freeze: extensions merged their defaults during composition; from here
+    // on the option set is fixed. Nested objects stay as mutable as their owners made them.
+    Object.freeze(this.options);
   }
 
   /**
@@ -221,6 +303,7 @@ export class Provider<_E extends readonly Extension[]> {
    * defined by the extensions.
    *
    * @param extensions - An array of {@link Extension} functions.
+   * @param options - Composition-time configuration, e.g. audited `allowOverrides` declarations.
    * @returns A new Provider subclass with the extensions applied.
    *
    * @example
@@ -231,12 +314,14 @@ export class Provider<_E extends readonly Extension[]> {
    */
   static withExtensions<E extends readonly Extension[]>(
     extensions: E,
+    options?: WithExtensionsOptions,
   ): {
     new (config: ProviderOptions, options?: any): Provider<E> & InferExtensions<E>;
     EXTENSIONS: E;
   } & typeof Provider {
     return class extends (this as any) {
       static EXTENSIONS = extensions;
+      static OVERRIDES = options?.allowOverrides ?? [];
     } as any;
   }
 }
