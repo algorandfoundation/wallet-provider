@@ -334,7 +334,8 @@ export class Provider<_E extends readonly Extension[]> {
         // `toString` is rejected too, not just own properties.
         if (key in this) {
           const existing = Object.getOwnPropertyDescriptor(this, key);
-          const isMergeable = existing && !existing.get && !incoming.get && !incoming.set;
+          const isMergeable =
+            existing && !existing.get && !existing.set && !incoming.get && !incoming.set;
           if (isMergeable && Object.is(existing.value, incoming.value)) {
             // Identical re-returned value: nothing to define.
           } else if (

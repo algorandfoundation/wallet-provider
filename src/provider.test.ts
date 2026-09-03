@@ -186,6 +186,22 @@ describe("Provider", () => {
         expect(error).toBeInstanceOf(ExtensionCollisionError);
         expect((error as ExtensionCollisionError).property).toBe(capability);
       });
+
+      it("rejects a data property colliding with a setter-only capability", () => {
+        // A setter-only accessor has `value === undefined`, so an incoming
+        // `{ sink: undefined }` would pass the identical-value no-op check if
+        // the gate only looked at `existing.get`.
+        const withSink: Extension<object> = () => ({
+          set sink(_value: string) {},
+        });
+        const withUndefinedSink: Extension<object> = () => ({ sink: undefined });
+        const CollidingProvider = Provider.withExtensions([withSink, withUndefinedSink]);
+
+        const error = catchError(() => new CollidingProvider(config));
+
+        expect(error).toBeInstanceOf(ExtensionCollisionError);
+        expect((error as ExtensionCollisionError).property).toBe("sink");
+      });
     });
 
     describe("namespace merging", () => {
