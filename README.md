@@ -79,6 +79,29 @@ const accounts = wallet.getAccounts();
 console.log("Available accounts:", accounts);
 ```
 
+## 🔒 Composition safety
+
+Contributions from extensions are checked as they are applied, so a name collision — or a
+compromised extension dependency — cannot silently overwrite the provider:
+
+- Base provider properties (`id`, `name`, `icon`, `uri`, `options`) are reserved and
+  defined non-writable before any extension runs. `toJSON` is reserved as well: an
+  instance-level `toJSON` would let `JSON.stringify` misreport the locked identity.
+- A key that already exists on the provider may only be contributed again as a
+  plain-object namespace: new entries merge in, reference-equal values are accepted as
+  no-ops, and nested plain objects merge recursively. Anything else — a differing leaf
+  value, an accessor, a non-extensible target — throws `ExtensionCollisionError` naming
+  the conflicting path.
+- Contributions are sealed as they land: a later extension (or a consumer holding the
+  instance) cannot reassign or redefine an earlier capability. Live getters stay live.
+- `options` is frozen (shallow) once construction completes: no new top-level option keys
+  after construction, while domain stores inside it stay as mutable as their owners made
+  them.
+- Outside strict mode, writes to sealed or frozen properties are silently ignored rather
+  than throwing — the values still cannot change.
+- A provider composed with no extensions skips the locking entirely and behaves as a plain
+  data object.
+
 Consult the [CONTRIBUTING](./CONTRIBUTING.md) guide for information on development, testing, and pull requests.
 
 ## 🤝 Acknowledgments
