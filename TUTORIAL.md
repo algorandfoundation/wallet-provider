@@ -255,6 +255,14 @@ Guidelines that keep extensions composable:
   `options.<domain>` and return your API under the same key, so it lands at
   `provider.<domain>`. Write only to your domain's store; reading other domains' stores is
   fine, writing to them is another extension's job.
+- **Same-key returns merge; conflicts throw.** When a later extension re-returns an
+  existing domain key (a bridge extension augmenting another domain's store, for
+  example), both values must be plain objects: new entries merge in, reference-equal
+  values are no-ops, nested plain objects merge recursively. A differing leaf value, an
+  accessor, or a non-plain value under an existing key throws `ExtensionCollisionError` —
+  an extension can extend a namespace, never silently replace what another one put there.
+  Base provider properties (`id`, `name`, `icon`, `uri`, `options`) and `toJSON` are
+  reserved outright, and every contribution is sealed once it lands.
 - **If you expose state, expose live getters, not copies.** A getter reads the store on
   every access; an assigned value is stale the moment an async event lands. Consumers
   needing reactivity subscribe to the store itself.

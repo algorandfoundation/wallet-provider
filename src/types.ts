@@ -129,39 +129,24 @@ export type InferExtensions<E extends readonly Extension[]> = UnionToIntersectio
 export type BaseProvider<E extends readonly Extension[] = any[]> = Provider<E> & InferExtensions<E>;
 
 /**
- * Composition-time configuration for {@link Provider.withExtensions}.
- */
-export type WithExtensionsOptions = {
-  /**
-   * Property keys that a later extension is allowed to redefine after an earlier
-   * extension has contributed them.
-   *
-   * Redefining a property is otherwise rejected with an {@link ExtensionCollisionError},
-   * so intentional shadowing has to be declared here, at the composition site, where it
-   * can be audited. Base provider properties (`id`, `name`, `icon`, `uri`, `options`)
-   * can never be redefined, even when listed.
-   */
-  allowOverrides?: readonly PropertyKey[];
-};
-
-/**
- * Thrown during {@link Provider} construction when an extension returns a property
- * that is already defined on the provider — either a base provider property or a
- * capability contributed by an earlier extension.
+ * Thrown during {@link Provider} construction when an extension's contribution
+ * would conflict with what is already on the provider: a reserved base property,
+ * a capability contributed by an earlier extension that cannot be merged, or a
+ * differing leaf value inside a merged domain namespace.
  *
  * Without this check the later extension would silently win, turning an accidental
  * name collision (or a compromised extension dependency) into capability confusion.
- * Intentional shadowing of extension-contributed properties must be declared via
- * {@link WithExtensionsOptions.allowOverrides}.
+ * Same-key contributions of plain-object namespaces are merged instead — see the
+ * extension loop in {@link Provider}'s constructor.
  */
 export class ExtensionCollisionError extends Error {
-  /** The property key the extension attempted to redefine. */
+  /** The top-level provider property key the conflict occurred under. */
   readonly property: PropertyKey;
 
-  constructor(property: PropertyKey) {
+  constructor(property: PropertyKey, detail?: string) {
     super(
-      `Extension attempted to redefine "${String(property)}", which is already defined on the provider. ` +
-        `Intentional overrides of extension-contributed properties must be declared via withExtensions' allowOverrides.`,
+      `Extension contribution conflicts at "${detail ?? String(property)}", which is already defined. ` +
+        `Same-key plain-object namespaces are merged; anything else must use a distinct key.`,
     );
     this.name = "ExtensionCollisionError";
     this.property = property;
@@ -169,16 +154,69 @@ export class ExtensionCollisionError extends Error {
 }
 
 /**
- * Base provider properties that no extension may redefine, with or without an
- * {@link WithExtensionsOptions.allowOverrides} declaration.
+ * Base provider properties defined non-writable and non-configurable at
+ * construction, before any extension code runs.
  */
-const RESERVED_PROVIDER_KEYS: ReadonlySet<PropertyKey> = new Set([
+export const LOCKED_PROVIDER_KEYS: readonly ["id", "name", "icon", "uri", "options"] = [
   "id",
   "name",
   "icon",
   "uri",
   "options",
+];
+
+/**
+ * Property keys no extension may contribute. The locked base properties, plus
+ * `toJSON`: an instance-level `toJSON` would let `JSON.stringify` misreport the
+ * locked identity even though the identity properties themselves cannot change.
+ */
+export const RESERVED_PROVIDER_KEYS: ReadonlySet<PropertyKey> = new Set([
+  ...LOCKED_PROVIDER_KEYS,
+  "toJSON",
 ]);
+
+const isPlainObject = (value: unknown): value is Record<PropertyKey, unknown> => {
+  if (value === null || typeof value !== "object") return false;
+  const proto = Object.getPrototypeOf(value);
+  return proto === Object.prototype || proto === null;
+};
+
+/**
+ * Merges a later extension's re-returned domain namespace into the existing one:
+ * new keys are copied over, reference-equal values are accepted as no-ops, and
+ * nested plain objects merge recursively. Anything else — a differing leaf, an
+ * accessor, a non-extensible target — is a conflict.
+ *
+ * `rootKey` is the top-level provider property the merge started from; `path`
+ * tracks the position for error messages.
+ */
+const mergeNamespace = (
+  target: Record<PropertyKey, unknown>,
+  source: Record<PropertyKey, unknown>,
+  rootKey: PropertyKey,
+  path: string,
+): void => {
+  for (const key of Reflect.ownKeys(source)) {
+    const keyPath = `${path}.${String(key)}`;
+    const incoming = Object.getOwnPropertyDescriptor(source, key)!;
+    if (incoming.get || incoming.set) throw new ExtensionCollisionError(rootKey, keyPath);
+
+    if (!Object.prototype.hasOwnProperty.call(target, key)) {
+      if (!Object.isExtensible(target)) throw new ExtensionCollisionError(rootKey, keyPath);
+      Object.defineProperty(target, key, incoming);
+      continue;
+    }
+
+    const existing = Object.getOwnPropertyDescriptor(target, key)!;
+    if (existing.get || existing.set) throw new ExtensionCollisionError(rootKey, keyPath);
+    if (Object.is(existing.value, incoming.value)) continue;
+    if (isPlainObject(existing.value) && isPlainObject(incoming.value)) {
+      mergeNamespace(existing.value, incoming.value, rootKey, keyPath);
+      continue;
+    }
+    throw new ExtensionCollisionError(rootKey, keyPath);
+  }
+};
 
 /**
  * Base class for managing configurations and extensions dynamically.
@@ -206,26 +244,26 @@ const RESERVED_PROVIDER_KEYS: ReadonlySet<PropertyKey> = new Set([
  * ```
  */
 export class Provider<_E extends readonly Extension[]> {
-  /** Unique identifier for the provider instance. Locked (non-writable) after construction. */
-  readonly id: ProviderId;
-  /** Human-readable name of the provider. Locked (non-writable) after construction. */
-  readonly name: string;
-  /** Optional icon for the provider. */
-  icon?: string;
+  /** Unique identifier for the provider instance. Locked (non-writable) at construction. */
+  declare readonly id: ProviderId;
+  /** Human-readable name of the provider. Locked (non-writable) at construction. */
+  declare readonly name: string;
+  /** Optional icon for the provider. Locked (non-writable) at construction. */
+  declare readonly icon?: string;
 
   /**
    * Sharable Provider URI.
    * Can be used for deep linking (e.g., `wallet://perawallet.app/onboard?extensions=[...]`).
-   * Locked (non-writable) after construction.
+   * Locked (non-writable) at construction.
    */
-  readonly uri?: URL | string;
+  declare readonly uri?: URL | string;
 
   /**
    * Merged configuration options for the provider and its extensions.
    * The reference is locked before extensions run and the object is frozen
    * (shallow) once construction completes.
    */
-  readonly options: ExtensionOptions;
+  declare readonly options: ExtensionOptions;
 
   /**
    * Default options for the Provider class.
@@ -239,13 +277,6 @@ export class Provider<_E extends readonly Extension[]> {
   static EXTENSIONS: readonly Extension[] = [];
 
   /**
-   * Extension-contributed property keys that a later extension may redefine.
-   * Set via {@link withExtensions}' `allowOverrides`; empty by default, so every
-   * collision is rejected with an {@link ExtensionCollisionError}.
-   */
-  static OVERRIDES: readonly PropertyKey[] = [];
-
-  /**
    * Constructs a new Provider instance.
    *
    * It merges the provided `options` with {@link DEFAULTS} and applies all {@link EXTENSIONS}
@@ -255,41 +286,80 @@ export class Provider<_E extends readonly Extension[]> {
    * @param options - Custom configuration options for extensions.
    */
   constructor(config: ProviderOptions, options?: ExtensionOptions | any) {
-    // Metadata
-    this.id = config.id;
-    this.name = config.name;
-    this.icon = config.icon;
+    const ctor = this.constructor as typeof Provider;
 
-    // Provider URI
-    this.uri = config.uri;
-
-    // Assign the options to this instance, including DEFAULTS
-    this.options = {
-      ...(this.constructor as typeof Provider).DEFAULTS,
-      ...options,
-    };
-
-    // Lock base identity and the options reference before any extension code runs,
-    // so an extension can neither redefine them (rejected below) nor mutate them
-    // directly through the provider reference it receives.
-    for (const key of ["id", "name", "uri", "options"]) {
-      Object.defineProperty(this, key, { writable: false, configurable: false });
+    // Without extensions no third-party code touches the instance during
+    // construction, so the locking below buys nothing — skip it and keep
+    // bare-Provider construction on the fast path. The composition-safety
+    // guarantees documented on this class apply to extension-composed
+    // providers.
+    if (ctor.EXTENSIONS.length === 0) {
+      this.id = config.id;
+      this.name = config.name;
+      this.icon = config.icon;
+      this.uri = config.uri;
+      this.options = { ...ctor.DEFAULTS, ...options };
+      return;
     }
 
-    const allowedOverrides = new Set((this.constructor as typeof Provider).OVERRIDES);
+    // Base identity and the options reference are defined locked, in one
+    // defineProperties call, before any extension code runs — an extension can
+    // neither contribute these keys (rejected below) nor mutate them directly
+    // through the provider reference it receives.
+    Object.defineProperties(this, {
+      id: { value: config.id, writable: false, configurable: false, enumerable: true },
+      name: { value: config.name, writable: false, configurable: false, enumerable: true },
+      icon: { value: config.icon, writable: false, configurable: false, enumerable: true },
+      uri: { value: config.uri, writable: false, configurable: false, enumerable: true },
+      options: {
+        value: { ...ctor.DEFAULTS, ...options },
+        writable: false,
+        configurable: false,
+        enumerable: true,
+      },
+    });
 
     // Apply extensions to the current instance
-    (this.constructor as typeof Provider).EXTENSIONS.forEach((ext: Extension) => {
+    for (const ext of ctor.EXTENSIONS) {
       const result = ext(this, this.options);
-      const descriptors = Object.getOwnPropertyDescriptors(result);
+      const descriptors = Object.getOwnPropertyDescriptors(result) as Record<
+        PropertyKey,
+        PropertyDescriptor
+      >;
       for (const key of Reflect.ownKeys(descriptors)) {
-        const isCollision = Object.prototype.hasOwnProperty.call(this, key);
-        if (isCollision && (RESERVED_PROVIDER_KEYS.has(key) || !allowedOverrides.has(key))) {
-          throw new ExtensionCollisionError(key);
+        if (RESERVED_PROVIDER_KEYS.has(key)) throw new ExtensionCollisionError(key);
+        const incoming = descriptors[key]!;
+
+        // `in` (not hasOwnProperty), so shadowing inherited members such as
+        // `toString` is rejected too, not just own properties.
+        if (key in this) {
+          const existing = Object.getOwnPropertyDescriptor(this, key);
+          const isMergeable = existing && !existing.get && !incoming.get && !incoming.set;
+          if (isMergeable && Object.is(existing.value, incoming.value)) {
+            // Identical re-returned value: nothing to define.
+          } else if (
+            isMergeable &&
+            isPlainObject(existing.value) &&
+            isPlainObject(incoming.value)
+          ) {
+            // The domain-namespace idiom: a later extension re-returns
+            // `{ domain: { … } }` to augment an earlier contribution in place.
+            mergeNamespace(existing.value, incoming.value, key, String(key));
+          } else {
+            throw new ExtensionCollisionError(key);
+          }
+          delete descriptors[key];
+          continue;
         }
+
+        // Sealed as it lands: a later extension holding the provider reference
+        // cannot reassign or redefine an earlier capability. Accessors must not
+        // carry `writable`; live getters stay live, just non-redefinable.
+        incoming.configurable = false;
+        if (!incoming.get && !incoming.set) incoming.writable = false;
       }
       Object.defineProperties(this, descriptors);
-    });
+    }
 
     // Shallow freeze: extensions merged their defaults during composition; from here
     // on the option set is fixed. Nested objects stay as mutable as their owners made them.
@@ -303,7 +373,6 @@ export class Provider<_E extends readonly Extension[]> {
    * defined by the extensions.
    *
    * @param extensions - An array of {@link Extension} functions.
-   * @param options - Composition-time configuration, e.g. audited `allowOverrides` declarations.
    * @returns A new Provider subclass with the extensions applied.
    *
    * @example
@@ -314,14 +383,12 @@ export class Provider<_E extends readonly Extension[]> {
    */
   static withExtensions<E extends readonly Extension[]>(
     extensions: E,
-    options?: WithExtensionsOptions,
   ): {
     new (config: ProviderOptions, options?: any): Provider<E> & InferExtensions<E>;
     EXTENSIONS: E;
   } & typeof Provider {
     return class extends (this as any) {
       static EXTENSIONS = extensions;
-      static OVERRIDES = options?.allowOverrides ?? [];
     } as any;
   }
 }
