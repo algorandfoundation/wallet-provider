@@ -1,0 +1,51 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    target-branch: "main"
+    open-pull-requests-limit: 10
+    cooldown:
+      default-days: 3
+      semver-patch-days: 3
+      semver-minor-days: 3
+      semver-major-days: 7
+    groups:
+      dev-tooling:
+        patterns:
+          - "oxlint"
+          - "oxfmt"
+          - "lint-staged"
+          - "husky"
+          - "typedoc*"
+          - "typescript"
+      testing:
+        patterns:
+          - "vitest*"
+          - "@vitest/*"
+      semantic-release:
+        patterns:
+          - "semantic-release"
+          - "@semantic-release/*"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "06:00"
+      timezone: "Etc/UTC"
+    target-branch: "main"
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 3
+    groups:
+      actions:
+        patterns:
+          - "actions/*"
+          - "pnpm/*"
+          - "danielroe/*"
