@@ -9,13 +9,11 @@
     "url": "https://github.com/algorandfoundation/wallet-provider.git"
   },
   "files": [
-    "*.js",
-    "*.js.map",
-    "*.d.ts",
-    "*.d.ts.map",
+    "dist",
     "src/types.ts",
     "src/index.ts",
-    "src/crypto.ts"
+    "src/crypto.ts",
+    "src/namespace.ts"
   ],
   "type": "module",
   "main": "dist/index.js",
@@ -34,6 +32,7 @@
     "docs": "typedoc",
     "test": "vitest run",
     "test:cov": "vitest run --coverage",
+    "test:types": "tsc -p tsconfig.test.json",
     "bench": "vitest bench",
     "release": "semantic-release",
     "prepare": "husky"
