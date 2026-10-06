@@ -1,3 +1,10 @@
+# [1.0.0-canary.8](https://github.com/algorandfoundation/wallet-provider/compare/v1.0.0-canary.7...v1.0.0-canary.8) (2026-10-06)
+
+
+### Bug Fixes
+
+* **docs:** tsdocs with typescript 7 and include uri resolution for docs ([f54569e](https://github.com/algorandfoundation/wallet-provider/commit/f54569e9bbfa9c9e5198078a9a9155816497b8ab))
+
 # [1.0.0-canary.7](https://github.com/algorandfoundation/wallet-provider/compare/v1.0.0-canary.6...v1.0.0-canary.7) (2026-10-06)
 
 
