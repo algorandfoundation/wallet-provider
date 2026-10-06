@@ -1,0 +1,7 @@
+npx lint-staged
+
+# Regenerate the markdown API reference in docs/ whenever its sources are part of the commit
+if git diff --cached --name-only --diff-filter=ACMRD | grep -qE '^(src/.*\.ts|typedoc\.json)$'; then
+  pnpm run docs
+  git add docs
+fi

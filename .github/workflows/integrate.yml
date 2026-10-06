@@ -1,40 +1,37 @@
 name: Integration
 on:
   pull_request:
-    branches: [main]
+    branches: [main, release]
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [20.x, 22.x, 24.x]
+        node-version: [22.x, 24.x]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6 # Honors the packageManager field
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
       - name: Install Dependencies
-        run: npm install
+        run: pnpm install
       - name: Lint Codebase
-        run: npm run lint --if-present
+        run: pnpm run --if-present lint:github
+      - name: Check formatting
+        run: pnpm run fmt:check
+      - name: Type Tests
+        run: pnpm run test:types
       - name: Unit Test
         run: npx vitest --reporter=junit --outputFile=test-report.junit.xml
-#      - name: Upload test results to Codecov
-#        if: ${{ !cancelled() }}
-#        uses: codecov/test-results-action@v1
-#        with:
-#          token: ${{ secrets.CODECOV_TOKEN }}
       - name: Coverage
-        run: npm run test:cov
+        run: pnpm run test:cov
       - name: Benchmark Tests
-        run: npm run bench
-#      - name: Upload coverage reports to Codecov
-#        uses: codecov/codecov-action@v5
-#        with:
-#          token: ${{ secrets.CODECOV_TOKEN }}
+        run: pnpm run bench
       - name: Run Build
-        run: npm run build
-#        env:
-#          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        run: pnpm run build
+      - name: Check API Docs Are Up To Date
+        run: pnpm run docs:check
