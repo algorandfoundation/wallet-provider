@@ -1,4 +1,4 @@
-import { bench, describe } from "vitest";
+import { describe, test } from "vitest";
 import { type Extension, Provider, type ProviderOptions } from "./index.js";
 
 describe("Provider Benchmarks", () => {
@@ -6,10 +6,6 @@ describe("Provider Benchmarks", () => {
     id: "bench-wallet",
     name: "Bench Wallet",
   };
-
-  bench("instantiate base Provider", () => {
-    new Provider(config);
-  });
 
   const withLogger: Extension = (provider) => ({
     log: (msg: string) => `[${provider.name}] ${msg}`,
@@ -21,10 +17,6 @@ describe("Provider Benchmarks", () => {
 
   const ExtendedProvider = Provider.withExtensions([withLogger, withAccounts]);
 
-  bench("instantiate ExtendedProvider", () => {
-    new ExtendedProvider(config, { accounts: true });
-  });
-
   const manyExtensions = Array.from({ length: 10 }, (_, i) => {
     const ext: Extension = () => ({ [`ext${i}`]: i });
     return ext;
@@ -32,7 +24,17 @@ describe("Provider Benchmarks", () => {
 
   const MultiExtendedProvider = Provider.withExtensions(manyExtensions);
 
-  bench("instantiate Provider with 10 extensions", () => {
-    new MultiExtendedProvider(config);
+  test("instantiation", async ({ bench }) => {
+    await bench.compare(
+      bench("instantiate base Provider", () => {
+        new Provider(config);
+      }),
+      bench("instantiate ExtendedProvider", () => {
+        new ExtendedProvider(config, { accounts: true });
+      }),
+      bench("instantiate Provider with 10 extensions", () => {
+        new MultiExtendedProvider(config);
+      }),
+    );
   });
 });
