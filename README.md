@@ -32,8 +32,8 @@ Extensions are modular functions that augment the `Provider` with specific capab
 
 The following walk-through assembles a provider from several extensions at your
 application's **composition root** and wires it to your stores. It sticks to the steps; the
-reasoning behind each one is in the [TUTORIAL](./TUTORIAL.md), and how data then flows
-between the stores is in [ARCHITECTURE](./ARCHITECTURE.md).
+reasoning behind each one is in the [TUTORIAL](https://github.com/algorandfoundation/wallet-provider/blob/main/TUTORIAL.md), and how data then flows
+between the stores is in [ARCHITECTURE](https://github.com/algorandfoundation/wallet-provider/blob/main/ARCHITECTURE.md).
 
 ### 1. Pick your extensions
 
@@ -45,7 +45,7 @@ An extension is a plain, synchronous function `(provider, options) => api` expor
 - `@algorandfoundation/accounts-keystore-extension` [published canary, reference example, not for production]
 - `@algorandfoundation/provider-migrations` [published canary]
 
-(see [For extension authors](./TUTORIAL.md#for-extension-authors-implementing-a-capability)).
+(see [For extension authors](https://github.com/algorandfoundation/wallet-provider/blob/main/TUTORIAL.md#for-extension-authors-implementing-a-capability)).
 The examples below use `WithKeyStore`, `WithAccounts`, and `WithAccountsKeystore`.
 
 > [!NOTE]
@@ -75,7 +75,7 @@ const accountsStore = new Store<AccountStoreState>({
 
 Because you create the stores, you can also persist them, hydrate them on a server, inspect
 them in devtools, or swap them wholesale in tests. The provider operates on them; it does
-not own them ([why](./TUTORIAL.md#the-contract-between-provider-and-state)).
+not own them ([why](https://github.com/algorandfoundation/wallet-provider/blob/main/TUTORIAL.md#the-contract-between-provider-and-state)).
 
 ### 3. Compose and instantiate
 
@@ -117,7 +117,7 @@ Either way, TypeScript infers the combined surface: everything each extension co
 shows up fully typed on the instance, and `options` is the single `ExtensionOptions`
 registry, so an unregistered namespace or a misspelled field is a compile error. (The plain
 `class MyWallet extends Provider { … }` form deliberately keeps `options` loose so a
-concrete wallet can own its option shape; see [DISCOVERY](./DISCOVERY.md#options-registry-and-namespace-resolution).)
+concrete wallet can own its option shape; see [DISCOVERY](https://github.com/algorandfoundation/wallet-provider/blob/main/DISCOVERY.md#options-registry-and-namespace-resolution).)
 
 ### 4. Mind the ordering
 
@@ -156,28 +156,29 @@ accountsStore.subscribe(() => {
 
 In React, bind a store slice with a selector so components re-render only when their slice
 changes: components read from stores and use the provider only to invoke commands
-([example](./TUTORIAL.md#for-app-developers-consuming-a-provider)).
+([example](https://github.com/algorandfoundation/wallet-provider/blob/main/TUTORIAL.md#for-app-developers-consuming-a-provider)).
 
 ## 📚 Where the docs live
 
 This repository is the single home for the **concepts and how-tos** of the provider /
 extension model:
 
-- [README.md](./README.md): this composition-root walk-through.
-- [TUTORIAL.md](./TUTORIAL.md): the building blocks, the provider ↔ state contract, and
+- [README.md](https://github.com/algorandfoundation/wallet-provider/blob/main/README.md): this composition-root walk-through.
+- [TUTORIAL.md](https://github.com/algorandfoundation/wallet-provider/blob/main/TUTORIAL.md): the building blocks, the provider ↔ state contract, and
   the app-developer and extension-author perspectives.
-- [ARCHITECTURE.md](./ARCHITECTURE.md): how data flows through a provider: standalone vs
+- [ARCHITECTURE.md](https://github.com/algorandfoundation/wallet-provider/blob/main/ARCHITECTURE.md): how data flows through a provider: standalone vs
   composed, the flow rules, bridges, and the whole wallet as one document.
-- [DISCOVERY.md](./DISCOVERY.md): the options registry, namespace resolution, and the rules
+- [DISCOVERY.md](https://github.com/algorandfoundation/wallet-provider/blob/main/DISCOVERY.md): the options registry, namespace resolution, and the rules
   that keep extensions composable.
-- [Architectural Decision Records](.decisions/0001-provider-and-extensions.md): why the
+- [Architectural Decision Records](https://github.com/algorandfoundation/wallet-provider/blob/main/.decisions/0001-provider-and-extensions.md): why the
   design is the way it is.
-- `docs/`: the generated API reference (`pnpm docs`).
+- [API Reference](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/README.md): the generated markdown API reference, browsable on
+  GitHub (`pnpm docs`).
 
 The [`wallet-provider-extensions`](https://github.com/algorandfoundation/wallet-provider-extensions)
 repository documents only its **per-package flows** (keystore, migrations, logs, …).
 
-Consult the [CONTRIBUTING](./CONTRIBUTING.md) guide for information on development, testing, and pull requests.
+Consult the [CONTRIBUTING](https://github.com/algorandfoundation/wallet-provider/blob/main/CONTRIBUTING.md) guide for information on development, testing, and pull requests.
 
 ## 🤝 Acknowledgments
 
