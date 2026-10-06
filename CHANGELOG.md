@@ -1,3 +1,10 @@
+# [1.0.0-canary.7](https://github.com/algorandfoundation/wallet-provider/compare/v1.0.0-canary.6...v1.0.0-canary.7) (2026-10-06)
+
+
+### Features
+
+* namespace alignment and composed types ([c345dff](https://github.com/algorandfoundation/wallet-provider/commit/c345dff702a7e97633cf6c5f65cf74c4beeab4fa)), closes [#5](https://github.com/algorandfoundation/wallet-provider/issues/5)
+
 # [1.0.0-canary.6](https://github.com/algorandfoundation/wallet-provider/compare/v1.0.0-canary.5...v1.0.0-canary.6) (2026-08-13)
 
 
