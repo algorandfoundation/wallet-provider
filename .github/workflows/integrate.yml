@@ -33,3 +33,5 @@ jobs:
         run: pnpm run bench
       - name: Run Build
         run: pnpm run build
+      - name: Check API Docs Are Up To Date
+        run: pnpm run docs:check

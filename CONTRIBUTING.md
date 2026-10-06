@@ -8,6 +8,7 @@ Thank you for your interest in contributing to the Wallet Provider project! We a
 - [🔄 Workflow](#workflow)
 - [📏 Coding Standards](#coding-standards)
 - [🧪 Testing](#testing)
+- [📚 API Docs](#api-docs)
 - [📝 Commit Messages](#commit-messages)
 - [🚀 Pull Request Process](#pull-request-process)
 
@@ -78,6 +79,32 @@ We use `vitest` for testing.
   pnpm bench
   ```
 
+## 📚 API Docs
+
+The API reference in [`docs/`](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/README.md) is markdown generated from the TSDoc comments in
+`src/` by TypeDoc and `typedoc-plugin-markdown`, and it is committed so it can be browsed on GitHub.
+
+- To regenerate it:
+  ```bash
+  pnpm docs
+  ```
+- To verify the committed docs are up to date (runs in CI):
+  ```bash
+  pnpm docs:check
+  ```
+
+The pre-commit hook regenerates and stages `docs/` automatically whenever a commit touches
+`src/**/*.ts` or `typedoc.json`. Never edit files in `docs/` by hand.
+
+TypeDoc does not yet support TypeScript 7, so `.pnpmfile.cjs` gives it a private TypeScript 6
+while the build keeps using TypeScript 7.
+
+Links must resolve outside GitHub too: `README.md` is rendered on npm, and the generated docs
+can be read anywhere. Use absolute `https://github.com/algorandfoundation/wallet-provider/blob/main/...`
+URLs in `README.md` rather than relative paths. The generated docs get theirs from `publicPath`
+in `typedoc.json`. In TSDoc comments, use `{@link Symbol}` for code references and absolute
+URLs for anything else.
+
 ## 📝 Commit Messages
 
 This project uses `semantic-release`, which requires [Conventional Commits](https://www.conventionalcommits.org/).
@@ -107,4 +134,4 @@ feat(provider): add support for custom extensions
 
 ---
 
-By contributing, you agree that your contributions will be licensed under the project's [Apache-2.0 License](./LICENSE).
+By contributing, you agree that your contributions will be licensed under the project's [Apache-2.0 License](https://github.com/algorandfoundation/wallet-provider/blob/main/LICENSE).

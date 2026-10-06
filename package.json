@@ -36,7 +36,8 @@
     "lint:github": "oxlint --format=github",
     "fmt": "oxfmt",
     "fmt:check": "oxfmt --check",
-    "docs": "typedoc",
+    "docs": "typedoc && oxfmt docs",
+    "docs:check": "pnpm run docs && git add --intent-to-add docs && git diff --exit-code --stat -- docs",
     "test": "vitest run",
     "test:cov": "vitest run --coverage",
     "test:types": "tsc -p tsconfig.test.json",
@@ -59,6 +60,7 @@
     "oxlint": "^1.57.0",
     "semantic-release": "^25.0.3",
     "typedoc": "^0.28.16",
+    "typedoc-plugin-markdown": "^4.13.1",
     "typescript": "^7.0.2",
     "vitest": "^5.0.2"
   },
