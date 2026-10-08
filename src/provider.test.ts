@@ -3,6 +3,8 @@ import {
   type BaseProvider,
   type Extension,
   type ExtensionOptions,
+  extendNamespace,
+  MountError,
   Provider,
   type ProviderOptions,
 } from "./index.js";
@@ -20,6 +22,12 @@ declare module "./index.js" {
     connections?: { signalUrl?: string };
     /** Configuration the keystore extension claims from its namespace. */
     keystore?: { prefix?: string };
+    /** A block with several fields, to exercise the DEFAULTS merge. */
+    retry?: { max?: number; delay?: number };
+  }
+  interface Namespaces {
+    /** The namespace the collision fixtures share. */
+    vault: { store?: { label: string }; audit?: { log: string[] } };
   }
 }
 
@@ -91,9 +99,147 @@ describe("Provider", () => {
 
     expect(() => new AsyncProvider({ id: "async", name: "Async" })).toThrowError(
       new TypeError(
-        'Extension for provider "async" returned a Promise. Extensions are applied synchronously; async extensions are not supported.',
+        'Extension "withAsync" for provider "async" returned a Promise. Extensions are applied synchronously; async extensions are not supported.',
       ),
     );
+  });
+
+  it("names the extension that returns something other than an object", () => {
+    const WithNothing = (() => undefined) as unknown as Extension;
+    const WithNumber = (() => 42) as unknown as Extension;
+
+    expect(() => new (Provider.withExtensions([WithNothing]))({ id: "p", name: "P" })).toThrowError(
+      new TypeError(
+        'Extension "WithNothing" for provider "p" returned undefined; an extension must return an object (return {} to contribute nothing).',
+      ),
+    );
+    expect(() => new (Provider.withExtensions([WithNumber]))({ id: "p", name: "P" })).toThrow(
+      /^Extension "WithNumber" for provider "p" returned number;/,
+    );
+  });
+
+  it("carries port and ssl from the config", () => {
+    const wallet = new Provider({ id: "p", name: "P", port: 8443, ssl: true });
+
+    expect(wallet.port).toBe(8443);
+    expect(wallet.ssl).toBe(true);
+    expect(new Provider({ id: "p", name: "P" }).port).toBeUndefined();
+  });
+});
+
+describe("options and DEFAULTS", () => {
+  const config: ProviderOptions = { id: "defaults", name: "Defaults" };
+
+  class WithDefaults extends Provider {
+    static DEFAULTS = { retry: { max: 3, delay: 100 }, flag: true };
+  }
+
+  it("merges an options block over the matching DEFAULTS block, key by key", () => {
+    const wallet = new WithDefaults(config, { retry: { max: 5 } });
+
+    // A one-level spread would drop `delay`; the block merge keeps it.
+    expect(wallet.options).toEqual({ retry: { max: 5, delay: 100 }, flag: true });
+  });
+
+  it("never shares DEFAULTS blocks between instances", () => {
+    const first = new WithDefaults(config);
+    const second = new WithDefaults(config);
+
+    expect(first.options).not.toBe(WithDefaults.DEFAULTS);
+    expect((first.options as any).retry).not.toBe(WithDefaults.DEFAULTS.retry);
+    expect((first.options as any).retry).not.toBe((second.options as any).retry);
+
+    (first.options as any).retry.max = 99;
+    expect((second.options as any).retry.max).toBe(3);
+    expect(WithDefaults.DEFAULTS.retry.max).toBe(3);
+  });
+
+  it("passes injected instances through by reference and lets a caller replace a block", () => {
+    class Store {
+      state = { keys: [] as string[] };
+    }
+    const shared = new Store();
+    class WithStore extends Provider {
+      static DEFAULTS = { keystore: { store: shared }, retry: { max: 3 } };
+    }
+    const mine = new Store();
+
+    const defaults = new WithStore(config);
+    const overridden = new WithStore(config, { keystore: { store: mine }, retry: null });
+
+    // The default `Store` is not cloned (an instance, not a plain block)...
+    expect((defaults.options as any).keystore.store).toBe(shared);
+    // ...the caller's instance wins when given, and a non-object value
+    // replaces the block outright.
+    expect((overridden.options as any).keystore.store).toBe(mine);
+    expect((overridden.options as any).retry).toBeNull();
+  });
+});
+
+describe("extension collisions", () => {
+  const config: ProviderOptions = { id: "p1", name: "Wallet" };
+  const construct = (extensions: readonly Extension[]) => () =>
+    new (Provider.withExtensions(extensions))(config);
+
+  it("refuses to redefine a core Provider property", () => {
+    for (const key of ["id", "name", "icon", "uri", "port", "ssl", "options"]) {
+      const Hijack = (() => ({ [key]: "hijacked" })) as Extension;
+      Object.defineProperty(Hijack, "name", { value: "Hijack" });
+
+      expect(construct([Hijack])).toThrow(MountError);
+      expect(construct([Hijack])).toThrow(
+        `Extension "Hijack" for provider "p1" redefines "${key}", a core Provider property.`,
+      );
+    }
+    // A getter is a redefinition too.
+    const GetterHijack = (() => ({
+      get id() {
+        return "hijacked";
+      },
+    })) as Extension;
+    expect(construct([GetterHijack])).toThrow(MountError);
+  });
+
+  it("refuses to redefine a property an earlier extension mounted", () => {
+    const WithA = (() => ({ x: "from A" })) as Extension;
+    const WithB = (() => ({ x: "from B" })) as Extension;
+    const WithGetter = (() => ({
+      get x() {
+        return "getter";
+      },
+    })) as Extension;
+    const symbol = Symbol("tag");
+    const WithSymbol = (() => ({ [symbol]: 1 })) as Extension;
+    const WithOtherSymbol = (() => ({ [symbol]: 2 })) as Extension;
+
+    expect(construct([WithA, WithB])).toThrow(MountError);
+    expect(construct([WithA, WithB])).toThrow(
+      'Extension "WithB" for provider "p1" redefines "x", already mounted by an earlier extension. Use extendNamespace to add to a namespace another extension mounted.',
+    );
+    // Accessors collide in both directions, and symbol keys are checked too.
+    expect(construct([WithA, WithGetter])).toThrow(MountError);
+    expect(construct([WithGetter, WithA])).toThrow(MountError);
+    expect(construct([WithSymbol, WithOtherSymbol])).toThrow(/Symbol\(tag\)/);
+    // The same value placed twice is not a collision.
+    const shared = { label: "shared" };
+    const WithShared = (() => ({ shared })) as Extension;
+    expect(construct([WithShared, WithShared])).not.toThrow();
+  });
+
+  it("lets several extensions extend one namespace, but not replace it", () => {
+    const WithStore = ((provider) =>
+      extendNamespace(provider, "vault", { store: { label: "local" } })) satisfies Extension;
+    const WithAudit = ((provider) =>
+      extendNamespace(provider, "vault", { audit: { log: [] } })) satisfies Extension;
+    const Replace = (() => ({ vault: { store: { label: "other" } } })) as Extension;
+
+    const wallet = construct([WithStore, WithAudit])();
+    expect((wallet as any).vault).toEqual({ store: { label: "local" }, audit: { log: [] } });
+
+    // A fresh object under the namespace key shadows the first extension's
+    // surface: that is the collision the check is for.
+    expect(construct([WithStore, Replace])).toThrow(MountError);
+    expect(construct([WithStore, Replace])).toThrow(/redefines "vault"/);
   });
 });
 
@@ -154,8 +300,32 @@ describe("composed typing", () => {
 
   it("preserves the extensions tuple on the class statics", () => {
     // The tuple stays on the statics (it never leaks into the instance type).
-    expectTypeOf(ComposedProvider.EXTENSIONS).toExtend<typeof EXTENSIONS>();
-    expect(ComposedProvider.EXTENSIONS).toBe(EXTENSIONS);
+    // The static is a copy: the caller's array is never mutated or aliased.
+    expectTypeOf(ComposedProvider.EXTENSIONS).toEqualTypeOf<typeof EXTENSIONS>();
+    expect(ComposedProvider.EXTENSIONS).toEqual(EXTENSIONS);
+    expect(ComposedProvider.EXTENSIONS).not.toBe(EXTENSIONS);
+  });
+
+  it("chains: a second withExtensions applies the first list, then the new one", () => {
+    interface AuditExtension {
+      audit: { entries: string[] };
+    }
+    const withAudit: Extension<AuditExtension> = (provider) => {
+      // Depends on the parent's extensions: both already applied.
+      const parent = provider as unknown as LoggerExtension & AccountsExtension;
+      return { audit: { entries: [parent.log("ready"), ...parent.getAccounts()] } };
+    };
+
+    const Chained = ComposedProvider.withExtensions([withAudit]);
+    const wallet = new Chained(config);
+
+    expectTypeOf(Chained.EXTENSIONS).toEqualTypeOf<
+      readonly [typeof withLogger, typeof withAccounts, typeof withAudit]
+    >();
+    expectTypeOf(wallet).toExtend<LoggerExtension & AccountsExtension & AuditExtension>();
+    expect(Chained.EXTENSIONS).toEqual([withLogger, withAccounts, withAudit]);
+    expect(ComposedProvider.EXTENSIONS).toEqual([withLogger, withAccounts]);
+    expect(wallet.audit.entries).toEqual(["[Composed] ready", "address1"]);
   });
 
   it("accepts any registered namespace: the registry is global, not per tuple", () => {

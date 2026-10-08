@@ -27,6 +27,7 @@
  * list is typed without a cast.
  */
 
+import { recordDerivation } from "./internal.ts";
 import type { Provider } from "./types.ts";
 
 /**
@@ -71,9 +72,11 @@ export type NamespaceHost = Provider & Partial<Namespaces>;
 export type Contribution<T> = T extends object ? { [K in keyof T]?: Contribution<T[K]> } : T;
 
 /**
- * Thrown when a namespace cannot be extended: the surface places a value
- * where one is already mounted, or descends into a mounted surface as if it
- * were a group.
+ * Thrown when a surface cannot be mounted. From `extendNamespace`: the
+ * contribution places a value where one is already mounted, or descends into
+ * a mounted surface as if it were a group. From the `Provider` constructor:
+ * an extension returns a property the provider already has (a core field or
+ * one an earlier extension mounted) instead of extending it.
  */
 export class MountError extends Error {
   constructor(message: string) {
@@ -283,22 +286,31 @@ export function hydrate<T extends object, Ops extends object>(
 }
 
 /**
- * Whether a value is a group to merge into: a plain object (or a
- * null-prototype object) whose members are all data, none of them functions
- * or getters/setters. Anything else (primitives, arrays, class instances,
- * objects with a method or an accessor) is a mounted surface.
- *
- * Members are inspected through their descriptors, so deciding never runs a
- * getter.
+ * Whether a value is a plain object: built from `{}` or `Object.create(null)`.
+ * A class instance, a `Map` or an array is not, and is a leaf wherever it
+ * sits, the root of a namespace included: a copy cannot preserve what it
+ * carries (`this` bound at construction, private fields, internal slots).
  */
-function isPlainObject(value: unknown): value is Record<string, unknown> {
+function hasPlainPrototype(value: unknown): value is Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) {
     return false;
   }
   const proto = Object.getPrototypeOf(value);
-  if (proto !== Object.prototype && proto !== null) {
-    return false;
-  }
+  return proto === Object.prototype || proto === null;
+}
+
+/**
+ * Whether a value is a group: a plain object whose members are all data (no
+ * functions, no getters/setters). Anything else is a leaf.
+ *
+ * This decides the members of a namespace. The root only needs
+ * {@link hasPlainPrototype}; its members are decided one by one, so a root
+ * carrying a getter (`get store()`) can still be extended.
+ *
+ * Members are inspected through their descriptors, so no getter runs.
+ */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  if (!hasPlainPrototype(value)) return false;
   return Object.values(Object.getOwnPropertyDescriptors(value)).every(
     (member) => "value" in member && typeof member.value !== "function",
   );
@@ -315,18 +327,21 @@ function peek(descriptor: PropertyDescriptor | undefined): unknown {
 }
 
 /**
- * Deep-merges `surface` into a shallow copy of `existing`, never mutating
- * either. Both sides are copied by property descriptor, so getters (on the
- * group already mounted and on the contribution) stay live instead of being
- * read once and frozen.
+ * Deep-merges `surface` into a copy of `existing`; neither is mutated.
+ * Members are copied by property descriptor, so getters stay live.
+ *
+ * The result is frozen at every level. A plain object the contribution
+ * places is copied and frozen too, never aliased. Leaves are placed as is
+ * and never frozen.
  */
 function merge(
-  existing: Record<string, unknown>,
+  existing: object,
   surface: Record<string, unknown>,
   path: string[],
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
-  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(existing))) {
+  for (const key of Reflect.ownKeys(existing)) {
+    const descriptor = Object.getOwnPropertyDescriptor(existing, key)!;
     Object.defineProperty(result, key, { ...descriptor, configurable: true });
   }
   for (const key of Object.keys(surface)) {
@@ -337,7 +352,14 @@ function merge(
     const at = [...path, key].join(".");
 
     if (peek(currentDescriptor) === undefined) {
-      Object.defineProperty(result, key, { ...descriptor, enumerable: true, configurable: true });
+      Object.defineProperty(result, key, {
+        ...descriptor,
+        ...(isPlainObject(descriptor.value) && {
+          value: merge({}, descriptor.value, [...path, key]),
+        }),
+        enumerable: true,
+        configurable: true,
+      });
       continue;
     }
     const current =
@@ -360,44 +382,52 @@ function merge(
       configurable: true,
     });
   }
-  return result;
+  return Object.freeze(result);
 }
 
 /**
  * Builds the object an extension returns to add its surface to a namespace:
  * `{ [namespace]: group }`, where `group` is a copy of `provider[namespace]`
- * with `surface` deep-merged in.
+ * with `surface` deep-merged in. Nothing is mutated, so every surface
+ * mounted before this one survives.
  *
- * Plain objects on both sides are groups and merge; anything else (a
- * keystore, a class instance, an object with methods) is a leaf and is
- * placed as is. Existing objects are never mutated, so every surface mounted
- * before this one survives, and every consumer reading `provider.key` finds
- * them all.
+ * Two kinds of value take part:
  *
- * Three rules follow and are part of the contract:
+ * - A **group** is a plain object (`{}` or `Object.create(null)`) whose
+ *   members are all data. Groups merge.
+ * - A **leaf** is anything else: a store, a class instance, an array, an
+ *   object with a method or getter. A leaf is placed as is and can neither
+ *   be merged into nor replaced.
  *
- * - **A group is data only.** An object is a group only if every member is a
- *   plain data value. One function or getter/setter makes the whole object a
- *   leaf, so `{ hardware: { ledger, list() {} } }` mounts `key.hardware` as a
- *   surface and a later `{ hardware: { trezor } }` throws. Keep groups free
- *   of behavior; put helpers on a leaf beneath them (`key.hardware.ledger`).
+ * Rules:
+ *
+ * - **The root must be a group.** `provider[namespace]` is merged into when
+ *   it is a plain object and starts empty when missing. A class instance (or
+ *   `Map`, array) there throws a `MountError`. Keep state in a store leaf
+ *   (`key.store`), not on the namespace object.
+ * - **A group is data only.** One function or getter makes the whole object
+ *   a leaf: after `{ hardware: { ledger, list() {} } }`, a later
+ *   `{ hardware: { trezor } }` throws. Put helpers on a leaf beneath the
+ *   group (`key.hardware.ledger`).
+ * - **Groups are frozen.** `provider.key.hardware = …` throws a `TypeError`,
+ *   at the root and in nested groups. To add to a namespace, call this
+ *   function again. Leaves are never frozen. The lock is runtime-only:
+ *   `Namespaces[N]` is not typed `Readonly`.
  * - **Getters stay live.** Members are copied by property descriptor, so a
- *   getter in `surface` (or already in the group) is mounted as a getter,
- *   never read once and frozen. A getter is a leaf: it can be placed but not
- *   merged into or replaced.
- * - **Read the namespace lazily.** Every call returns a new copy of the
- *   group, so a reference to `provider.key` captured while an extension runs
- *   does not see what later extensions add. Read `provider.key` at call time
- *   instead of keeping it; leaves (`provider.key.store`) are placed as is and
- *   are safe to keep.
+ *   getter is mounted as a getter, not read once. A getter is a leaf.
+ * - **Read the namespace lazily.** Each call returns a new copy, so a
+ *   `provider.key` captured while an extension runs misses what later
+ *   extensions add. Read `provider.key` at call time; leaves
+ *   (`provider.key.store`) are safe to keep.
  *
  * @template N - The registered namespace name.
  * @param provider - The provider the extension is being applied to.
  * @param namespace - The namespace to extend (e.g. `"key"`).
  * @param surface - The branch this extension contributes.
  * @returns The object to return (or spread into) from the extension.
- * @throws {MountError} If `surface` places a value where a leaf is already
- * mounted (`key.store` twice), or descends into a leaf as if it were a group.
+ * @throws {MountError} If `surface` places a value on a mounted leaf
+ * (`key.store` twice), descends into a leaf as if it were a group, or
+ * `provider[namespace]` is a leaf rather than a group.
  *
  * @example
  * ```typescript
@@ -421,8 +451,15 @@ export function extendNamespace<N extends Namespace>(
   surface: Contribution<Namespaces[N]>,
 ): { [K in N]: Namespaces[N] } {
   const existing: unknown = provider?.[namespace];
-  const root: Record<string, unknown> =
-    existing !== null && typeof existing === "object" ? (existing as Record<string, unknown>) : {};
-  const group = merge(root, (surface ?? {}) as Record<string, unknown>, [namespace]);
+  // A plain object is the root to merge into; a missing namespace (or a
+  // primitive there) starts an empty group; any other object is a surface.
+  if (existing !== null && typeof existing === "object" && !hasPlainPrototype(existing)) {
+    throw new MountError(`${namespace} is a mounted surface, not a namespace`);
+  }
+  const root: object | undefined = hasPlainPrototype(existing) ? existing : undefined;
+  const group = merge(root ?? {}, (surface ?? {}) as Record<string, unknown>, [namespace]);
+  // Let the Provider constructor tell this group (the namespace, extended)
+  // from an unrelated value returned under the same key (a collision).
+  if (root !== undefined) recordDerivation(group, root);
   return { [namespace]: group } as unknown as { [K in N]: Namespaces[N] };
 }
