@@ -6,7 +6,7 @@
 function hydrate<T extends object, Ops extends object>(entry: T, ops: Ops): T & Readonly<Ops>;
 ```
 
-Defined in: [src/namespace.ts:269](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L269)
+Defined in: [src/namespace.ts:272](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L272)
 
 Attaches operations to an entry as non-enumerable, read-only properties.
 

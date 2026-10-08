@@ -6,7 +6,7 @@
 function ofType<T extends string>(type: T): <E>(entry: E) => entry is Extract<E, { type: T }>;
 ```
 
-Defined in: [src/namespace.ts:228](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L228)
+Defined in: [src/namespace.ts:231](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L231)
 
 A predicate that matches the entries of one domain kind: those whose
 [Entity.type](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/interfaces/Entity.md#property-type) equals `type`. Exact match only.

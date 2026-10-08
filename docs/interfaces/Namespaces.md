@@ -2,7 +2,7 @@
 
 # Interface: Namespaces
 
-Defined in: [src/namespace.ts:52](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L52)
+Defined in: [src/namespace.ts:53](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L53)
 
 Registry of provider namespaces: a declaration-merged interface every
 extension package augments with the namespace it mounts and the API type
