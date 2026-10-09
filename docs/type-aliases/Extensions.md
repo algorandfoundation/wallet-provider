@@ -6,7 +6,7 @@
 type Extensions = readonly Extension[];
 ```
 
-Defined in: [src/types.ts:49](https://github.com/algorandfoundation/wallet-provider/blob/main/src/types.ts#L49)
+Defined in: [src/types.ts:50](https://github.com/algorandfoundation/wallet-provider/blob/main/src/types.ts#L50)
 
 A readonly list of [extensions](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/type-aliases/Extension.md): the constraint (and
 default) for the extensions seat across [Provider](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/classes/Provider.md),

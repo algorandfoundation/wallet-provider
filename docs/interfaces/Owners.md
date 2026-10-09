@@ -2,7 +2,7 @@
 
 # Interface: Owners
 
-Defined in: [src/namespace.ts:170](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L170)
+Defined in: [src/namespace.ts:173](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L173)
 
 Registry of writers: a declaration-merged interface every package that
 writes entries augments with its own name and the `metadata` shape it

@@ -13,6 +13,7 @@
     "src/types.ts",
     "src/index.ts",
     "src/crypto.ts",
+    "src/internal.ts",
     "src/namespace.ts"
   ],
   "type": "module",
