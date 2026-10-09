@@ -129,7 +129,7 @@ static withExtensions<E extends Extensions, P extends Extensions = Extensions>(t
 } & Omit<typeof Provider, "EXTENSIONS">;
 ```
 
-Defined in: [src/types.ts:472](https://github.com/algorandfoundation/wallet-provider/blob/main/src/types.ts#L472)
+Defined in: [src/types.ts:480](https://github.com/algorandfoundation/wallet-provider/blob/main/src/types.ts#L480)
 
 Creates a new Provider class that includes the specified extensions.
 

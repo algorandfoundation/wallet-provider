@@ -424,6 +424,14 @@ export class Provider<_E extends Extensions = Extensions> {
           `Extension "${nameOf(ext)}" for provider "${this.id}" redefines "${label}", already mounted by an earlier extension. Use extendNamespace to add to a namespace another extension mounted.`,
         );
       }
+      // The provider owns its property flags: a frozen (or non-configurable)
+      // result must not lock the property against a later extendNamespace.
+      // Namespace contents stay protected by the frozen groups themselves.
+      for (const key of Reflect.ownKeys(descriptors)) {
+        const descriptor = descriptors[key];
+        descriptor.configurable = true;
+        if ("value" in descriptor) descriptor.writable = true;
+      }
       Object.defineProperties(this, descriptors);
     });
   }

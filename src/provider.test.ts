@@ -241,6 +241,34 @@ describe("extension collisions", () => {
     expect(construct([WithStore, Replace])).toThrow(MountError);
     expect(construct([WithStore, Replace])).toThrow(/redefines "vault"/);
   });
+
+  it("does not inherit property flags from a frozen or non-configurable result", () => {
+    const Frozen = ((provider) =>
+      Object.freeze(
+        extendNamespace(provider, "vault", { store: { label: "local" } }),
+      )) as Extension;
+    const NonConfigurable = ((provider) =>
+      Object.defineProperty({}, "vault", {
+        value: extendNamespace(provider, "vault", { store: { label: "local" } }).vault,
+        enumerable: true,
+      })) as Extension;
+    const WithAudit = ((provider) =>
+      extendNamespace(provider, "vault", { audit: { log: [] } })) satisfies Extension;
+
+    for (const First of [Frozen, NonConfigurable]) {
+      const alone = construct([First])();
+      expect(Object.getOwnPropertyDescriptor(alone, "vault")).toMatchObject({
+        configurable: true,
+        writable: true,
+        enumerable: true,
+      });
+
+      const wallet = construct([First, WithAudit])();
+      expect((wallet as any).vault).toEqual({ store: { label: "local" }, audit: { log: [] } });
+      // The namespace group itself stays frozen.
+      expect(Object.isFrozen((wallet as any).vault)).toBe(true);
+    }
+  });
 });
 
 describe("composed typing", () => {
