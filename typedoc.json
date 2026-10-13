@@ -1,0 +1,20 @@
+{
+  "$schema": "https://typedoc-plugin-markdown.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "tsconfig": "tsconfig.json",
+  "out": "docs",
+  "plugin": ["typedoc-plugin-markdown"],
+  "readme": "none",
+  "name": "Wallet Provider API Reference",
+  "gitRevision": "main",
+  "publicPath": "https://github.com/algorandfoundation/wallet-provider/blob/main/docs/",
+  "entryFileName": "README.md",
+  "hidePageHeader": true,
+  "useCodeBlocks": true,
+  "parametersFormat": "table",
+  "interfacePropertiesFormat": "table",
+  "classPropertiesFormat": "table",
+  "typeDeclarationFormat": "table",
+  "enumMembersFormat": "table",
+  "expandParameters": true
+}
