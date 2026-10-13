@@ -1,3 +1,15 @@
+# [1.0.0-canary.9](https://github.com/algorandfoundation/wallet-provider/compare/v1.0.0-canary.8...v1.0.0-canary.9) (2026-10-13)
+
+
+### Bug Fixes
+
+* provider owned property flags are not frozen until group is extended ([31420e6](https://github.com/algorandfoundation/wallet-provider/commit/31420e6de01742284db01d1c7bcea5fed3302f6f))
+
+
+### Features
+
+* chained providers ([d253299](https://github.com/algorandfoundation/wallet-provider/commit/d2532996d7b93c0e3462f90ca259da32c7b6faf8))
+
 # [1.0.0-canary.8](https://github.com/algorandfoundation/wallet-provider/compare/v1.0.0-canary.7...v1.0.0-canary.8) (2026-10-06)
 
 
