@@ -1,3 +1,25 @@
+# 1.0.0 (2026-10-13)
+
+
+### Bug Fixes
+
+* adds provenance, migrates to pnpm ([7c3c95e](https://github.com/algorandfoundation/wallet-provider/commit/7c3c95e594afbb5fde5d115b2525d8ba2919dfcd))
+* **docs:** tsdocs with typescript 7 and include uri resolution for docs ([f54569e](https://github.com/algorandfoundation/wallet-provider/commit/f54569e9bbfa9c9e5198078a9a9155816497b8ab))
+* provider owned property flags are not frozen until group is extended ([31420e6](https://github.com/algorandfoundation/wallet-provider/commit/31420e6de01742284db01d1c7bcea5fed3302f6f))
+* remove example types from options ([574c4b5](https://github.com/algorandfoundation/wallet-provider/commit/574c4b56cf362b8dcab827ed82f7892e9de5bef3))
+* remove promise from extension return type ([0fc7dee](https://github.com/algorandfoundation/wallet-provider/commit/0fc7dee9d7ea7b1d4970e378b560a3d99c4b66f3))
+* security patches ([c651236](https://github.com/algorandfoundation/wallet-provider/commit/c65123669e74371cce17387ce6ae4308800164b0))
+* use Object.defineProperties to assign properties from the Object result ([b7701be](https://github.com/algorandfoundation/wallet-provider/commit/b7701be18898f60a2a0b3a8938ef947be0bfbc89))
+* withExtensions type return ([ffeff70](https://github.com/algorandfoundation/wallet-provider/commit/ffeff7019bd7fd04b632ec42f27a706da8885ed3))
+
+
+### Features
+
+* Base Provider ([8c236db](https://github.com/algorandfoundation/wallet-provider/commit/8c236db7fa0bd02508e3521777a1729ce313dfa8))
+* chained providers ([d253299](https://github.com/algorandfoundation/wallet-provider/commit/d2532996d7b93c0e3462f90ca259da32c7b6faf8))
+* namespace alignment and composed types ([c345dff](https://github.com/algorandfoundation/wallet-provider/commit/c345dff702a7e97633cf6c5f65cf74c4beeab4fa)), closes [#5](https://github.com/algorandfoundation/wallet-provider/issues/5)
+* shared utility methods ([32fc2d7](https://github.com/algorandfoundation/wallet-provider/commit/32fc2d701b8d1d7f832ee9c5539c48ffe42c351d))
+
 # [1.0.0-canary.9](https://github.com/algorandfoundation/wallet-provider/compare/v1.0.0-canary.8...v1.0.0-canary.9) (2026-10-13)
 
 
