@@ -27,6 +27,8 @@ jobs:
           node-version: "24.x"
           cache: "pnpm"
       - run: pnpm install
+      - run: pnpm run test:types
+      - run: pnpm test
       - run: pnpm run --if-present build
       - run: pnpm run release
         env:

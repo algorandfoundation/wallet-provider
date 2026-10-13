@@ -6,7 +6,7 @@
 type OwnedBy<O extends string> = O extends keyof Owners ? object : object;
 ```
 
-Defined in: [src/namespace.ts:178](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L178)
+Defined in: [src/namespace.ts:181](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L181)
 
 What [ownedBy](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/functions/ownedBy.md) adds to an entry it matched: the owner literal and, for
 a registered owner, that owner's `metadata` shape.

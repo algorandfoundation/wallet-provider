@@ -2,11 +2,13 @@
 
 # Class: MountError
 
-Defined in: [src/namespace.ts:78](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L78)
+Defined in: [src/namespace.ts:81](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L81)
 
-Thrown when a namespace cannot be extended: the surface places a value
-where one is already mounted, or descends into a mounted surface as if it
-were a group.
+Thrown when a surface cannot be mounted. From `extendNamespace`: the
+contribution places a value where one is already mounted, or descends into
+a mounted surface as if it were a group. From the `Provider` constructor:
+an extension returns a property the provider already has (a core field or
+one an earlier extension mounted) instead of extending it.
 
 ## Extends
 
@@ -20,7 +22,7 @@ were a group.
 new MountError(message: string): MountError;
 ```
 
-Defined in: [src/namespace.ts:79](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L79)
+Defined in: [src/namespace.ts:82](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L82)
 
 #### Parameters
 

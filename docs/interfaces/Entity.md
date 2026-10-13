@@ -2,7 +2,7 @@
 
 # Interface: Entity\<Type _extends_ `string` = `string`, Metadata _extends_ `object` = `Record`\<`string`, `unknown`\>, Owner _extends_ `string` = `string`\>
 
-Defined in: [src/namespace.ts:121](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L121)
+Defined in: [src/namespace.ts:124](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L124)
 
 The shape every entry of a domain store shares: what it is, who wrote it,
 and the writer's own data. Operations are attached later by [hydrate](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/functions/hydrate.md).
@@ -48,6 +48,6 @@ type KeyEntry = {
 
 | Property                                  | Type       | Description                                                                                  | Defined in                                                                                                    |
 | ----------------------------------------- | ---------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| <a id="property-metadata"></a> `metadata` | `Metadata` | The writer's own data. Only the owner reads it; core never looks inside.                     | [src/namespace.ts:131](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L131) |
-| <a id="property-owner"></a> `owner`       | `Owner`    | The name of the package that wrote this entry, e.g. `"@algorandfoundation/keystore-ledger"`. | [src/namespace.ts:129](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L129) |
-| <a id="property-type"></a> `type`         | `Type`     | The domain kind, e.g. `"ed25519"`. Set by the domain, not by the writer.                     | [src/namespace.ts:127](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L127) |
+| <a id="property-metadata"></a> `metadata` | `Metadata` | The writer's own data. Only the owner reads it; core never looks inside.                     | [src/namespace.ts:134](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L134) |
+| <a id="property-owner"></a> `owner`       | `Owner`    | The name of the package that wrote this entry, e.g. `"@algorandfoundation/keystore-ledger"`. | [src/namespace.ts:132](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L132) |
+| <a id="property-type"></a> `type`         | `Type`     | The domain kind, e.g. `"ed25519"`. Set by the domain, not by the writer.                     | [src/namespace.ts:130](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L130) |

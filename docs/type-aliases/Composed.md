@@ -6,7 +6,7 @@
 type Composed<T> = { [K in keyof T]: T[K] } & object;
 ```
 
-Defined in: [src/types.ts:174](https://github.com/algorandfoundation/wallet-provider/blob/main/src/types.ts#L174)
+Defined in: [src/types.ts:191](https://github.com/algorandfoundation/wallet-provider/blob/main/src/types.ts#L191)
 
 Flattens an intersection into a single object type for display.
 

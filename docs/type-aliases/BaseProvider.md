@@ -6,7 +6,7 @@
 type BaseProvider<E extends Extensions = any[]> = Composed<Provider & InferExtensions<E>>;
 ```
 
-Defined in: [src/types.ts:193](https://github.com/algorandfoundation/wallet-provider/blob/main/src/types.ts#L193)
+Defined in: [src/types.ts:210](https://github.com/algorandfoundation/wallet-provider/blob/main/src/types.ts#L210)
 
 Type helper for a [Provider](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/classes/Provider.md) instance that has been augmented with [extensions](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/type-aliases/Extension.md).
 

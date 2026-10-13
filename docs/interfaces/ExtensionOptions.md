@@ -2,7 +2,7 @@
 
 # Interface: ExtensionOptions
 
-Defined in: [src/types.ts:85](https://github.com/algorandfoundation/wallet-provider/blob/main/src/types.ts#L85)
+Defined in: [src/types.ts:86](https://github.com/algorandfoundation/wallet-provider/blob/main/src/types.ts#L86)
 
 The single provider options type: a declaration-merged registry every
 extension module contributes its `options.<domain>` block to.

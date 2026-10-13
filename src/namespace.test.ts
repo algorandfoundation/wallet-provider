@@ -230,6 +230,127 @@ describe("extendNamespace", () => {
     ).toThrow(/^key\.hardware\.ledger is already mounted/);
   });
 
+  it("treats a class instance at the root of a namespace as a mounted surface", () => {
+    // A namespace root must be a plain object; a class instance (or `Map`,
+    // array) there is a leaf and cannot be extended.
+    class KeyRoot {
+      store = keystore("local");
+      describe() {
+        return this.store.label;
+      }
+    }
+    const ledger = device("ledger");
+
+    for (const root of [new KeyRoot(), new KeyListStore(), new Map(), []]) {
+      expect(() =>
+        // @ts-expect-error none of these is a `KeyNamespace`; the runtime sees a surface.
+        extendNamespace(host({ key: root }), "key", { hardware: { ledger } }),
+      ).toThrow(/^key is a mounted surface, not a namespace$/);
+      // An empty contribution would still copy the instance, so it is refused too.
+      // @ts-expect-error none of these is a `KeyNamespace`.
+      expect(() => extendNamespace(host({ key: root }), "key", {})).toThrow(MountError);
+    }
+    // A plain object with a method is not an instance: its members decide,
+    // so it merges, and a null-prototype object is plain as well.
+    const sign = () => "signed";
+    // @ts-expect-error `sign` is not part of the registered `key` namespace.
+    expect(extendNamespace(host({ key: { sign } }), "key", { hardware: { ledger } }).key).toEqual({
+      sign,
+      hardware: { ledger },
+    });
+    const bare = Object.assign(Object.create(null), { store: keystore("local") });
+    expect(extendNamespace(host({ key: bare }), "key", { hardware: { ledger } }).key).toEqual({
+      store: bare.store,
+      hardware: { ledger },
+    });
+    // `Object.prototype` members never count as mounted.
+    expect(
+      // @ts-expect-error `toString` is not part of the registered `key` namespace.
+      extendNamespace(host({ key: {} }), "key", { toString: () => "x" }).key.toString(),
+    ).toBe("x");
+  });
+
+  it("surfaces the class-instance rule from the Provider constructor", () => {
+    class KeyRoot {
+      describe() {
+        return "root";
+      }
+    }
+    const WithRoot = (() => ({ key: new KeyRoot() })) as unknown as Extension;
+    const WithLedger = ((provider) =>
+      extendNamespace(provider, "key", {
+        hardware: { ledger: device("ledger") },
+      })) satisfies Extension;
+    const Composed = Provider.withExtensions([WithRoot, WithLedger]);
+
+    expect(() => new Composed({ id: "p1", name: "Wallet" })).toThrow(
+      /^key is a mounted surface, not a namespace$/,
+    );
+  });
+
+  it("freezes every group it builds and leaves the leaves alone", () => {
+    const local = keystore("local");
+    const ledger = device("ledger");
+    const contribution = { store: local, hardware: { ledger } };
+
+    const { key } = extendNamespace(host(), "key", contribution);
+
+    // The root and the nested group are frozen; the contribution's own
+    // objects are copied, not aliased, and stay writable for their author.
+    expect(Object.isFrozen(key)).toBe(true);
+    expect(Object.isFrozen(key.hardware)).toBe(true);
+    expect(key.hardware).not.toBe(contribution.hardware);
+    expect(Object.isFrozen(contribution)).toBe(false);
+    expect(Object.isFrozen(contribution.hardware)).toBe(false);
+    // Leaves are placed as is and keep their own state.
+    expect(key.store).toBe(local);
+    expect(Object.isFrozen(local)).toBe(false);
+    expect(Object.isFrozen(key.hardware?.ledger)).toBe(false);
+    // Adding to a group in place throws (modules are strict): the only way
+    // to add to a namespace is another `extendNamespace`.
+    expect(() => {
+      (key as Record<string, unknown>).sneaky = 1;
+    }).toThrow(TypeError);
+    expect(() => {
+      (key.hardware as Record<string, unknown>).trezor = device("trezor");
+    }).toThrow(TypeError);
+    // The type does not say so (`Namespaces["key"]` is not `Readonly`), but
+    // a mounted member cannot be reassigned either.
+    expect(() => {
+      key.store = keystore("other");
+    }).toThrow(TypeError);
+    expect(key).toEqual({ store: local, hardware: { ledger } });
+  });
+
+  it("extends a frozen group into a new frozen copy", () => {
+    const ledger = device("ledger");
+    const trezor = device("trezor");
+    const first = extendNamespace(host(), "key", { hardware: { ledger } }).key;
+
+    const { key } = extendNamespace(host({ key: first }), "key", { hardware: { trezor } });
+
+    expect(key).not.toBe(first);
+    expect(key.hardware).not.toBe(first.hardware);
+    expect(key.hardware).toEqual({ ledger, trezor });
+    expect(first.hardware).toEqual({ ledger });
+    expect(Object.isFrozen(key)).toBe(true);
+    expect(Object.isFrozen(key.hardware)).toBe(true);
+  });
+
+  it("stops an extension from editing a namespace an earlier one mounted", () => {
+    const WithLedger = ((provider) =>
+      extendNamespace(provider, "key", {
+        hardware: { ledger: device("ledger") },
+      })) satisfies Extension;
+    const Sneaky = ((provider) => {
+      (provider.key as Record<string, unknown>).sneaky = 1;
+      return {};
+    }) satisfies Extension;
+    const Composed = Provider.withExtensions([WithLedger, Sneaky]);
+
+    expect(() => new Composed({ id: "p1", name: "Wallet" })).toThrow(TypeError);
+  });
+
   it("tolerates a non-object existing value and skips undefined branches", () => {
     const local = keystore("local");
 

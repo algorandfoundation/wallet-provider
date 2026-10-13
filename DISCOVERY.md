@@ -250,7 +250,8 @@ Three rules decide how contributions merge:
 - **A group is data only.** A plain object merges only if every member is a data value. One
   method or getter makes the whole object a mounted surface (a leaf): after
   `{ hardware: { ledger, list() {} } }`, a later `{ hardware: { trezor } }` throws a
-  `MountError`. Keep groups free of behavior and put helpers on a leaf beneath them.
+  `MountError`. Keep groups free of behavior and put helpers on a leaf beneath them. The same
+  holds at the root: a class instance at `provider.key` is a leaf and cannot be extended.
 - **Getters stay live.** Members are copied by property descriptor, so a getter inside a
   namespace (`key: { get store() { ... } }`) is mounted as a getter, never read once and
   frozen. A getter is a leaf: it can be placed but not merged into or replaced.
@@ -258,6 +259,11 @@ Three rules decide how contributions merge:
   so a `provider.key` reference captured while an extension runs does not see what later
   extensions add. Read `provider.key` when you need it; a leaf (`provider.key.store`) is
   placed as is and is safe to keep.
+
+Groups are frozen; the only way to add to a namespace is `extendNamespace`. The constructor
+applies the same rule to the flat surface: an extension that returns a property the provider
+already has (a core field such as `id`, or something an earlier extension mounted) throws a
+`MountError`.
 
 #### One domain, one store
 

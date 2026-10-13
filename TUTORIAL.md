@@ -275,6 +275,7 @@ store) and an **API** (methods to interact with that state). Define both, plus t
 surface the extension merges onto the provider:
 
 ```typescript
+// types.ts
 import type { Store } from "@tanstack/store";
 
 /** A minimal account interface. */
@@ -318,17 +319,15 @@ export interface AccountStoreExtension<T = BaseAccount> {
 
 An extension is a plain function with the signature `(provider, options) => api`. It runs
 once, synchronously, when the provider is constructed, and whatever it returns is merged
-onto the provider instance:
+onto the provider instance. The example is split across three files: `types.ts` (Step 1),
+`options.ts` (Step 3), and `accounts.ts` (this step):
 
 ```typescript
+// accounts.ts
 import type { Extension, Provider } from "@algorandfoundation/wallet-provider";
 import { Store } from "@tanstack/store";
-import type {
-  AccountStoreExtension,
-  AccountStoreExtensionOptions,
-  AccountStoreState,
-  BaseAccount,
-} from "./types"; // see Step 3
+import type { AccountStoreExtension, AccountStoreState, BaseAccount } from "./types";
+import type { AccountStoreExtensionOptions } from "./options"; // see Step 3
 
 export const WithAccounts = <T extends BaseAccount>(
   provider: Provider<any> & Partial<AccountStoreExtension<T>>,
@@ -444,16 +443,21 @@ Four details matter here:
   Promise from the extension itself makes the constructor throw a `TypeError`.
 - **`walletKey` scoping and `use-wallet` compatibility.** Partitioning accounts under `wallets[walletKey]` enables a single `AccountStoreState` store instance to be shared across multiple providers or with `@txnlab/use-wallet`'s `WalletManager({ options: { store } })`. When `options.accounts.walletKey` is omitted, it defaults to `provider.id`.
 
-### Step 3: Register your options block
+### Step 3: Register your options block and namespaces
 
 The extension reads `options.accounts.store`, so the `accounts` key has to exist on
 the shared `ExtensionOptions` registry. Register it once with a named, exported interface
-and module augmentation, and derive the extension's own `options` type from it:
+and module augmentation, and derive the extension's own `options` type from it. In the
+same block, register what the extension merges onto the provider on the `Namespaces`
+registry: that is what lets later extensions read `provider.account?.store` and
+`provider.accounts` through the typed `NamespaceHost` parameter (an unregistered name is
+a compile error):
 
 ```typescript
+// options.ts
 import type { Store } from "@tanstack/store";
 import type { ExtensionOptions } from "@algorandfoundation/wallet-provider";
-import type { AccountStoreState, BaseAccount } from "./types";
+import type { AccountStoreExtension, AccountStoreState, BaseAccount } from "./types";
 
 /** The `options.accounts` block. Bridges augment this interface. */
 export interface AccountsOptions {
@@ -466,6 +470,12 @@ export interface AccountsOptions {
 declare module "@algorandfoundation/wallet-provider" {
   interface ExtensionOptions {
     accounts?: AccountsOptions; // optional: providers without WithAccounts share the registry
+  }
+  interface Namespaces {
+    /** The API namespace WithAccounts mounts: `provider.account.store` */
+    account: AccountStoreExtension["account"];
+    /** The reactive list WithAccounts exposes at `provider.accounts` */
+    accounts: BaseAccount[];
   }
 }
 
@@ -494,7 +504,8 @@ the `accounts` namespace:
 ```typescript
 import { Store } from "@tanstack/store";
 import { Provider } from "@algorandfoundation/wallet-provider";
-import { WithAccounts, type AccountStoreState } from "./accounts";
+import { WithAccounts } from "./accounts";
+import type { AccountStoreState } from "./types";
 
 const accounts = new Store<AccountStoreState>({ wallets: {}, activeWallet: null });
 
@@ -534,6 +545,8 @@ can build directly on what earlier ones contributed: call their methods, read th
 convenience state:
 
 ```typescript
+import type { Extension } from "@algorandfoundation/wallet-provider";
+
 type IdentitiesExtension = {
   identity: {
     store: {
@@ -548,8 +561,9 @@ export const WithIdentities: Extension<IdentitiesExtension> = (provider, options
     identity: {
       store: {
         async resolve() {
-          // Depends on WithAccounts: reads the state it already merged onto the provider
-          const active = provider.accounts[0];
+          // Depends on WithAccounts: reads the state it already merged onto the provider.
+          // This read compiles because Step 3 registered `accounts` on `Namespaces`.
+          const active = provider.accounts?.[0];
           const identity = getIdentity(active?.address);
           return identity.did;
         },

@@ -6,7 +6,7 @@
 type Extension<T = any> = (provider: NamespaceHost, options: ExtensionOptions) => T;
 ```
 
-Defined in: [src/types.ts:38](https://github.com/algorandfoundation/wallet-provider/blob/main/src/types.ts#L38)
+Defined in: [src/types.ts:39](https://github.com/algorandfoundation/wallet-provider/blob/main/src/types.ts#L39)
 
 An Extension is a function that augments a [Provider](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/classes/Provider.md) instance with additional functionality.
 

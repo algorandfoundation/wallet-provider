@@ -6,7 +6,7 @@
 type Contribution<T> = T extends object ? { [K in keyof T]?: Contribution<T[K]> } : T;
 ```
 
-Defined in: [src/namespace.ts:71](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L71)
+Defined in: [src/namespace.ts:72](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L72)
 
 The part of a registered surface one extension contributes: a deep partial
 of `Namespaces[N]`, so a package can add one branch (`{ hardware: { ledger } }`)

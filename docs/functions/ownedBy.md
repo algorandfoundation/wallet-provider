@@ -6,7 +6,7 @@
 function ownedBy<O extends string>(owner: O): <E>(entry: E) => entry is E & OwnedBy<O>;
 ```
 
-Defined in: [src/namespace.ts:204](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L204)
+Defined in: [src/namespace.ts:207](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L207)
 
 A predicate that matches the entries a package owns: those whose
 [Owned.owner](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/interfaces/Owned.md#property-owner) equals `owner`. Exact match only.

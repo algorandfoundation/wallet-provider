@@ -17,6 +17,7 @@
 ## Type Aliases
 
 - [BaseProvider](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/type-aliases/BaseProvider.md)
+- [ChainedExtensions](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/type-aliases/ChainedExtensions.md)
 - [Composed](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/type-aliases/Composed.md)
 - [Contribution](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/type-aliases/Contribution.md)
 - [Extension](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/type-aliases/Extension.md)

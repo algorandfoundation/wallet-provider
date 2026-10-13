@@ -2,7 +2,7 @@
 
 # Interface: Owned
 
-Defined in: [src/namespace.ts:139](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L139)
+Defined in: [src/namespace.ts:142](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L142)
 
 The one field [ownedBy](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/functions/ownedBy.md) needs: an entry tagged with the package that
 wrote it. Every [Entity](https://github.com/algorandfoundation/wallet-provider/blob/main/docs/interfaces/Entity.md) is `Owned`; the narrower trait is kept for
@@ -12,4 +12,4 @@ predicates and for entries that predate `type` and `metadata`.
 
 | Property                            | Type     | Description                                                                                  | Defined in                                                                                                    |
 | ----------------------------------- | -------- | -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| <a id="property-owner"></a> `owner` | `string` | The name of the package that wrote this entry, e.g. `"@algorandfoundation/keystore-ledger"`. | [src/namespace.ts:141](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L141) |
+| <a id="property-owner"></a> `owner` | `string` | The name of the package that wrote this entry, e.g. `"@algorandfoundation/keystore-ledger"`. | [src/namespace.ts:144](https://github.com/algorandfoundation/wallet-provider/blob/main/src/namespace.ts#L144) |
